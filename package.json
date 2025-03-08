@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "esm": "^3.2.25",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7",
+    "os": "^0.1.2",
+    "otp-generator": "^4.0.1",
+    "sequelize": "^6.37.3",
+    "uuid": "^9.0.1"
+  },
+  "type": "module"
+}
