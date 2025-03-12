@@ -1,24 +1,24 @@
 import pool from '../config/database.js';
 
-class OtpModel {
-  async createOtp(accountId, otp, expiresAt, connection = pool) {
+class otpModel {
+  async createOtp(email, otp, expiresAt, connection = pool) {
     await connection.execute(
-      'INSERT INTO otps (account_id, otp, expires_at) VALUES (?, ?, ?)',
-      [accountId, otp, expiresAt]
+      'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, ?)',
+      [email, otp, expiresAt]
     );
   }
 
-  async getValidOtp(accountId, otp, connection = pool) {
+  async getValidOtp(email, otp, connection = pool) {
     const [rows] = await connection.execute(
-      'SELECT * FROM otps WHERE account_id = ? AND otp = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
-      [accountId, otp]
+      'SELECT * FROM otps WHERE email = ? AND otp_code = ? AND expires_at > NOW() and is_used = 0 ORDER BY created_at DESC LIMIT 1',
+      [email, otp]
     );
-    return rows[0];
+    return rows[0] || null;
   }
 
-  async deleteOtp(otpId, connection = pool) {
-    await connection.execute('DELETE FROM otps WHERE id = ?', [otpId]);
+  async deactivateUsedOtp(otpId, connection = pool) {
+    await connection.execute('UPDATE otps set is_used = 1 WHERE id = ?', [otpId]);
   }
 }
 
-export default new OtpModel();
+export default new otpModel();

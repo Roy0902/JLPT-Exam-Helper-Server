@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-class EmailService {
+class emailService {
   async sendOtpEmail(email, otp) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -18,8 +18,13 @@ class EmailService {
       text: `Your OTP is ${otp}. It expires in 10 minutes.`,
       html: `<p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
     };
-    await transporter.sendMail(mailOptions);
+
+    try {
+      const res = await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw new Error('Failed to send OTP email');
+    }
   }
 }
 
-export default new EmailService();
+export default new emailService();

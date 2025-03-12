@@ -1,28 +1,56 @@
 import pool from '../config/database.js';
 
-class AccountModel {
-    async createAccount(email, connection = pool) {
-      const [result] = await connection.execute(
-        'INSERT INTO accounts (email) VALUES (?)',
-        [email]
+class accountModel {
+    async createAccount(email, user_name, password_hash, connection = pool) {
+      await connection.execute(
+        'INSERT INTO accounts (email, user_name, password_hash) VALUES (?,?,?)',
+        [email, user_name, password_hash]
       );
-      return result.insertId;
-    }
+    };
   
     async getAccountByEmail(email, connection = pool) {
       const [rows] = await connection.execute(
-        'SELECT * FROM accounts WHERE email = ? AND is_active = TRUE',
+        'SELECT * FROM accounts WHERE email = ? ',
         [email]
       );
       return rows[0];
-    }
-  
-    async updateVerificationStatus(accountId, isVerified, connection = pool) {
-      await connection.execute(
-        'UPDATE accounts SET is_verified = ?, updated_at = NOW() WHERE id = ?',
-        [isVerified, accountId]
+    };
+
+    async getAccountByUserName(user_name, connection = pool) {
+      const [rows] = await connection.execute(
+        'SELECT * FROM accounts WHERE user_name = ? ',
+        [user_name]
       );
+      return rows[0];
+    };
+
+    async getEmailAndPasswordByEmail(email, connection = pool) {
+      const [rows] = await connection.execute(
+        'SELECT email, password_hash FROM accounts WHERE email = ? ',
+        [email]
+      );
+      return rows[0];
+    };
+
+    async getAccountIDByEmail(email, connection = pool){
+      'SELECT account_id FROM accounts WHERE email = ? ',
+      [email]
     }
+
+
+    async updatePasswordByEmail(email, password_hash, connection = pool) {
+      await connection.execute(
+        'UPDATE accounts SET password_hash = ? WHERE email = ?',
+        [password_hash, email]
+      );
+    };
+
+    async updateLastLoginTime(email,  connection = pool) {
+      await connection.execute(
+        'UPDATE accounts SET last_login_at = Now()'
+      );
+    };
+
   }
   
-  export default new AccountModel();
+  export default new accountModel();
