@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 
-class jishoService{
+class jisho_service{
 
     async searchDictionary(keyword){
         try {
@@ -38,4 +38,4 @@ class jishoService{
 
 }
 
-export default new jishoService();
+export default new jisho_service();

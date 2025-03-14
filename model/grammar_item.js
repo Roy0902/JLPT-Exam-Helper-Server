@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class grammarItemModel {
+class grammar_item {
 
   async getGrammarBySubtopicName(subtopic_name, connection = pool) {
     const [rows] = await connection.execute(
@@ -16,4 +16,4 @@ class grammarItemModel {
   }
 }
 
-export default new grammarItemModel();
+export default new grammar_item();

@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class sessionTokenModel {
+class session_token {
   async insertToken(email, session_tokens, connection = pool) {
     await connection.execute(
       'INSERT INTO session_tokens (email, token) VALUES (?, ?)',
@@ -18,4 +18,4 @@ class sessionTokenModel {
   }
 }
 
-export default new sessionTokenModel();
+export default new session_token();

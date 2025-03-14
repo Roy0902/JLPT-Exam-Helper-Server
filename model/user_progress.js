@@ -1,4 +1,4 @@
-class userProgressModel {
+class user_progress {
     async getUserProgressByEmail(email,  connection = pool) {
         const [rows] = await connection.execute(
             'Select count(*) from  where token = ? and is_revoked = 0',

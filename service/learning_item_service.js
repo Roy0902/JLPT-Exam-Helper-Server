@@ -1,11 +1,11 @@
 import pool from '../config/database.js';
 import jwt from'jsonwebtoken'
-import subtopicModel from '../model/subtopicModel.js';
-import characterItemModel from '../model/characterItemModel.js'
-import grammarItemModel from '../model/grammarItemModel.js'
+import subtopic from '../model/subtopic.js';
+import character_item from '../model/character_item.js'
+import grammar_item from '../model/grammar_item.js'
 import 'dotenv/config';
 
-class learningItemService{
+class learning_item_service{
 
     async getUserProgressByToken(level, sessionToken){
        
@@ -54,7 +54,7 @@ class learningItemService{
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const rows = await subtopicModel.getSubtopicByCategoryNameAndLevel(category_name, level_name, connection)
+          const rows = await subtopic.getSubtopicByCategoryNameAndLevel(category_name, level_name, connection)
           if(!rows){
             return {statusCode: 401, message: 'Unknown error.', data: null}
           }
@@ -84,7 +84,7 @@ class learningItemService{
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        const rows = await characterItemModel.getCharacterBySubtopicName(subtopic_name, connection);
+        const rows = await character_item.getCharacterBySubtopicName(subtopic_name, connection);
         if(!rows){
           return {statusCode: 401, message: 'Unknown error.', data: null}
         }
@@ -114,7 +114,7 @@ class learningItemService{
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        const rows = await grammarItemModel.getGrammarBySubtopicName(subtopic_name, connection);
+        const rows = await grammar_item.getGrammarBySubtopicName(subtopic_name, connection);
         if(!rows){
           return {statusCode: 401, message: 'Unknown error.', data: null}
         }
@@ -133,4 +133,4 @@ class learningItemService{
   };
 }
 
-export default new learningItemService();
+export default new learning_item_service();

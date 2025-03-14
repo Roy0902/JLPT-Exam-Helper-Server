@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-class emailService {
+class email_service {
   async sendOtpEmail(email, otp) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -27,4 +27,4 @@ class emailService {
   }
 }
 
-export default new emailService();
+export default new email_service();

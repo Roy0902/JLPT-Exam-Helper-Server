@@ -1,16 +1,16 @@
-import googleTtsService from "../service/googleTtsService.js";
-
+import jisho_service from "../service/jisho_service.js";
 
 const sendResponse = (res, code, message, data) => {
     return res.json({code: code, message: message, data: data });
 };
 
-class googleTtsController {
-    getTtsService = async (req, res) => {
-        const text = req.query.text; 
-        const lang = 'ja-JP'; 
+class jisho_controller {
+
+    searchDictionary = async (req, res) => {
         try {
-            const response = await googleTtsService.getTtsService(text, lang);
+            const {keyword} = req.query; 
+            const response = await jisho_service.searchDictionary(keyword);
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -18,6 +18,7 @@ class googleTtsController {
             return sendResponse(res, statusCode, message, null);   
         }
     };
+ 
 }
 
-export default new googleTtsController();
+export default new jisho_controller();

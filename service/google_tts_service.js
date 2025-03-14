@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import client from '../config/googleClient.js'
+import client from '../config/google_client.js'
 
 
-class googleTtsService{
+class google_tts_service{
 
     async getTtsService(text, lang){
         try {
@@ -27,4 +27,4 @@ class googleTtsService{
 
 }
 
-export default new googleTtsService();
+export default new google_tts_service();

@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class otpModel {
+class otp {
   async createOtp(email, otp, expiresAt, connection = pool) {
     await connection.execute(
       'INSERT INTO otps (email, otp_code, expires_at) VALUES (?, ?, ?)',
@@ -21,4 +21,4 @@ class otpModel {
   }
 }
 
-export default new otpModel();
+export default new otp();

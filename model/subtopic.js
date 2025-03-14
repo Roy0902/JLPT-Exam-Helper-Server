@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class subtopicModel {
+class subtopic {
 
   async getSubtopicByCategoryNameAndLevel(category_name, level_name, connection = pool) {
     const [rows] = await connection.execute(
@@ -16,4 +16,4 @@ class subtopicModel {
   }
 }
 
-export default new subtopicModel();
+export default new subtopic();

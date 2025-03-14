@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class accountModel {
+class account {
     async createAccount(email, user_name, password_hash, connection = pool) {
       await connection.execute(
         'INSERT INTO accounts (email, user_name, password_hash) VALUES (?,?,?)',
@@ -53,4 +53,4 @@ class accountModel {
 
   }
   
-  export default new accountModel();
+  export default new account();

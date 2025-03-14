@@ -1,15 +1,15 @@
-import learningItemService from "../service/learningItemService.js";
+import learning_item_service from "../service/learning_item_service.js";
 
 const sendResponse = (res, code, message, data) => {
     return res.json({code: code, message: message, data: data });
 };
 
-class learningItemController {
+class learning_item_controller {
 
     getUserProgress = async (req, res) => {
         try {
             const {level, sessionToken} = req.body;
-            const response = await learningItemService.getUserProgressByToken(level, sessionToken);
+            const response = await learning_item_service.getUserProgressByToken(level, sessionToken);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -20,9 +20,9 @@ class learningItemController {
 
     getSubtopicByCategoryNameAndLevel = async (req, res) => {
         try {
-            const category_name = req.query.category_name; 
-            const level_name = req.query.level_name;
-            const response = await learningItemService.getSubtopicByCategoryNameAndLevel(category_name, level_name);
+            const {category_name, level_name} = req.query; 
+            const response = await learning_item_service.
+                             getSubtopicByCategoryNameAndLevel(category_name, level_name);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -33,8 +33,8 @@ class learningItemController {
 
     getCharacterBySubtopicName = async (req, res) => {
         try {
-            const subtopic_name = req.query.subtopic_name; 
-            const response = await learningItemService.getCharacterBySubtopicName(subtopic_name);
+            const {subtopic_name} = req.query; 
+            const response = await learning_item_service.getCharacterBySubtopicName(subtopic_name);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -45,18 +45,16 @@ class learningItemController {
 
     getGrammarBySubtopicName = async (req, res) => {
         try {
-            const subtopic_name = req.query.subtopic_name; 
-            const response = await learningItemService.getGrammarBySubtopicName(subtopic_name);
-            console.log(response)
+            const {subtopic_name} = req.query; 
+            const response = await learning_item_service.getGrammarBySubtopicName(subtopic_name);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
-            console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }
     };
  
 }
 
-export default new learningItemController();
+export default new learning_item_controller();

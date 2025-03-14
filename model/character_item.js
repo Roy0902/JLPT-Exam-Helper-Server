@@ -1,6 +1,6 @@
 import pool from '../config/database.js';
 
-class characterItemModel {
+class character_item {
 
   async getCharacterBySubtopicName(subtopic_name, connection = pool) {
     const [rows] = await connection.execute(
@@ -16,4 +16,4 @@ class characterItemModel {
   }
 }
 
-export default new characterItemModel();
+export default new character_item();

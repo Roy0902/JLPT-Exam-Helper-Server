@@ -1,12 +1,11 @@
-import accountModel from '../model/accountModel.js';
-import sessionTokenModel from '../model/sessionTokenModel.js';
+import account from '../model/account.js';
+import session_token from '../model/session_token.js';
 import bcrypt from 'bcrypt';
 import pool from '../config/database.js';
 import jwt from'jsonwebtoken'
 import 'dotenv/config';
-import { now } from 'sequelize/lib/utils';
 
-class accountService{
+class account_service{
 
     async signUp(email, user_name, password){
        
@@ -20,7 +19,7 @@ class accountService{
             connection = await pool.getConnection();
             await connection.beginTransaction();
 
-            const existingAccount = await accountModel.getAccountByUserName(user_name, connection);
+            const existingAccount = await account.getAccountByUserName(user_name, connection);
 
             if (existingAccount) {
               await connection.rollback();
@@ -32,7 +31,7 @@ class accountService{
               password_hash = await bcrypt.hash(password, 10); 
             }
 
-            await accountModel.createAccount(email, user_name, password_hash, connection);
+            await account.createAccount(email, user_name, password_hash, connection);
             await connection.commit();
 
             return {statusCode: 201, message: 'Sign Up Success.', data: null}
@@ -61,7 +60,7 @@ class accountService{
             connection = await pool.getConnection();
             await connection.beginTransaction();
 
-            const account = await accountModel.getAccountByEmail(email, connection);
+            const account = await account.getAccountByEmail(email, connection);
             if (!account) {
             await connection.rollback();
               return {statusCode: 403, message: '*Account not found.', data: null};
@@ -69,7 +68,7 @@ class accountService{
 
             // Hash new password
             const password_hash = await bcrypt.hash(password, 10);
-            accountModel.updatePasswordByEmail(email, password_hash)
+            account.updatePasswordByEmail(email, password_hash)
             await connection.commit();
 
             return {statusCode: 201, message: 'Password changed successfully.', data: null};
@@ -98,7 +97,7 @@ class accountService{
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const account = await accountModel.getEmailAndPasswordByEmail(email, connection);
+          const account = await account.getEmailAndPasswordByEmail(email, connection);
           if(!account){
             await connection.rollback();
             return {statusCode: 403, message: 'Account does not exist.', data: null};
@@ -116,8 +115,8 @@ class accountService{
             process.env.JWT_SECRET
           );
 
-          await sessionTokenModel.insertToken(email, token, connection);
-          await accountModel.updateLastLoginTime(email, connection);
+          await session_token.insertToken(email, token, connection);
+          await account.updateLastLoginTime(email, connection);
           await connection.commit();
 
           return {statusCode: 200, message: 'Sign In Successfully.', data: {token}};
@@ -141,7 +140,7 @@ class accountService{
     try {
         connection = await pool.getConnection();
         await connection.beginTransaction();
-        const sessionToken = await sessionTokenModel.getEmailByToken(token, connection);
+        const sessionToken = await session_token.getEmailByToken(token, connection);
         if(!sessionToken){
           await connection.rollback();
           return {statusCode: 403, message: 'The session token was expired.', data: null};
@@ -161,4 +160,4 @@ class accountService{
 
 }
 
-export default new accountService();
+export default new account_service();

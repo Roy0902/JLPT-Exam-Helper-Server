@@ -1,15 +1,15 @@
-import accountService from "../service/accountService.js";
+import otp_service from "../service/otp_service.js";
 
 const sendResponse = (res, code, message, data) => {
     return res.json({code: code, message: message, data: data });
 };
 
-class accountController {
+class otp_controller {
 
-    signUp = async (req, res) => {
+    getSignUpOtp = async (req, res) => {
         try {
-            const {email, user_name, password} = req.body;
-            const response = await accountService.signUp(email, user_name, password);
+            const {email} = req.body;
+            const response = await otp_service.getSignUpOtp(email);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -18,10 +18,10 @@ class accountController {
         }
     };
 
-    resetPassword = async (req, res) => {
+    resendOtp = async (req, res) => {
         try {
-            const {email, password} = req.body;
-            const response = await accountService.resetPassword(email, password);
+            const {email} = req.body;
+            const response = await otp_service.resendOtp(email);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -30,10 +30,10 @@ class accountController {
         }
     };
 
-    signIn = async (req, res) => {
+    getResetPasswordOtp = async (req, res) => {
         try {
-            const {email, password} = req.body;
-            const response = await accountService.signIn(email, password);
+            const {email} = req.body;
+            const response = await otp_service.getResetPasswordOtp(email);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -42,10 +42,10 @@ class accountController {
         }
     };
 
-    verifySessionToken = async (req, res) => {
+    verifyEmail = async (req, res) => {
         try {
-            const {token} = req.body;
-            const response = await accountService.verifySessionToken(token);
+            const  {email, otp_code} = req.body;
+            const response = await otp_service.verifyEmail(email, otp_code);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -53,6 +53,6 @@ class accountController {
             return sendResponse(res, statusCode, message, null);   
         }
     };
-}
+};
 
-export default new accountController();
+export default new otp_controller();
