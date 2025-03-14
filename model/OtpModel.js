@@ -17,7 +17,7 @@ class otpModel {
   }
 
   async deactivateUsedOtp(otpId, connection = pool) {
-    await connection.execute('UPDATE otps set is_used = 1 WHERE id = ?', [otpId]);
+    await connection.execute('UPDATE otps set is_used = 1 WHERE otp_id = ?', [otpId]);
   }
 }
 

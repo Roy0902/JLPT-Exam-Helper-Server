@@ -123,8 +123,7 @@ class otpService{
                 return {statusCode: 403, message: '*Invalid or expired OTP', data: null};
             }
 
-            await otpModel.deactivateUsedOtp(otpRecord.id, connection);
-
+            await otpModel.deactivateUsedOtp(otpRecord.otp_id, connection);
             await connection.commit();
             return {statusCode: 200, message: 'Verify Email Successfully', data: {email}};
         } catch (error) {
