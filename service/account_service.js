@@ -60,8 +60,8 @@ class account_service{
             connection = await pool.getConnection();
             await connection.beginTransaction();
 
-            const account = await account.getAccountByEmail(email, connection);
-            if (!account) {
+            const result = await account.getAccountByEmail(email, connection);
+            if (!result) {
             await connection.rollback();
               return {statusCode: 403, message: '*Account not found.', data: null};
             }
@@ -97,8 +97,8 @@ class account_service{
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const account = await account.getEmailAndPasswordByEmail(email, connection);
-          if(!account){
+          const result = await account.getEmailAndPasswordByEmail(email, connection);
+          if(!result){
             await connection.rollback();
             return {statusCode: 403, message: 'Account does not exist.', data: null};
           }

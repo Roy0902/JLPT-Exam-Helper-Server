@@ -10,7 +10,6 @@ class jisho_controller {
         try {
             const {keyword} = req.query; 
             const response = await jisho_service.searchDictionary(keyword);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;

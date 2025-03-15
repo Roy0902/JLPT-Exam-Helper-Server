@@ -15,7 +15,6 @@ class google_tts_service{
             const [response] = await client.synthesizeSpeech(request);
             const audioContent = response.audioContent;
             const audioBase64 = audioContent.toString('base64');
-            console.log(audioBase64);
             return {statusCode: 201, message: '*Get the audio successfully.', data: audioBase64};
           } catch (error) {
             console.log("R")

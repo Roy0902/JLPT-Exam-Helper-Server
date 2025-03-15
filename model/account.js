@@ -32,12 +32,6 @@ class account {
       return rows[0];
     };
 
-    async getAccountIDByEmail(email, connection = pool){
-      'SELECT account_id FROM accounts WHERE email = ? ',
-      [email]
-    }
-
-
     async updatePasswordByEmail(email, password_hash, connection = pool) {
       await connection.execute(
         'UPDATE accounts SET password_hash = ? WHERE email = ?',
@@ -47,8 +41,19 @@ class account {
 
     async updateLastLoginTime(email,  connection = pool) {
       await connection.execute(
-        'UPDATE accounts SET last_login_at = Now()'
+        'UPDATE accounts SET last_login_at = Now() where email = ? ', [email]
       );
+    };
+
+    async getAccountBySessionToken(session_token, connection = pool) {
+      const [rows] = await connection.execute(       
+        'SELECT a.account_id ' + 
+        'FROM accounts a ' + 
+        'LEFT JOIN session_tokens s ON a.email = s.email '  + 
+        'WHERE token =  ? ;',
+        [session_token]
+      );
+      return rows[0];
     };
 
   }

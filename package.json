@@ -12,7 +12,9 @@
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.6.1",
     "@google-cloud/text-to-speech": "^5.8.1",
+    "axios": "^1.8.3",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.7",
     "esm": "^3.2.25",
     "express": "^4.21.2",
@@ -22,7 +24,8 @@
     "os": "^0.1.2",
     "otp-generator": "^4.0.1",
     "sequelize": "^6.37.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "xml2js": "^0.6.2"
   },
   "type": "module"
 }
