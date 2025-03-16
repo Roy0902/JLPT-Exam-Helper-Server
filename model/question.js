@@ -1,7 +1,6 @@
 import pool from '../config/database.js';
 
 class question {
-
   async insertQuestion(account, question_title, question_description, connection = pool) {
     await connection.execute(
         'INSERT INTO questions (account_id, question_title, question_description) ' + 

@@ -14,6 +14,20 @@ class grammar_item {
 
     return rows;
   }
+
+  async getGrammarByLevel(level, connection = pool){
+    const [rows] = await db.query(
+      `SELECT gi.*
+       FROM grammar_items gi
+       JOIN items i ON gi.item_id = i.item_id
+       JOIN subtopics s ON i.subtopic_id = s.subtopic_id
+       JOIN levels l ON s.level_id = l.level_id
+       WHERE l.level_name = ? `,
+      [level]);
+    
+    return rows
+  }
+
 }
 
 export default new grammar_item();
