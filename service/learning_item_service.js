@@ -131,6 +131,43 @@ class learning_item_service{
     }
 
   };
+
+  async getLearningItemByLevel(level_name){
+    // Validate input
+    if (!level_name) {
+      throw {statusCode: 400, message: '*Level name are required.', data: null};
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const characterList = await character_item.getCharacterByLevelName(level_name, connection)
+        if(!characterList){
+          characterList = null;
+        }
+
+        console.log("123")
+        const grammarList = await grammar_item.getGrammarByLevelName(level_name, connection)
+        if(!grammarList){
+          grammarList = null;
+        }
+        await connection.commit();
+        console.log("Testing")
+        return {statusCode: 201, 
+                message: 'Get learning item succcessfully.', 
+                data:{'charactList': characterList, 'grammarList': grammarList}}
+    } catch (error) {
+      if (connection) 
+        await connection.rollback();
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+      if (connection) 
+        connection.release();
+    }
+
+  };
 }
 
 export default new learning_item_service();

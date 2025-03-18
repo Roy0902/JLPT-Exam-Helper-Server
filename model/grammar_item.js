@@ -28,6 +28,20 @@ class grammar_item {
     return rows
   }
 
+  async getGrammarByLevelName(level_name, connection = pool) {
+    const [rows] = await connection.execute(
+      'SELECT gi.rule, gi.explanation ' + 
+      'FROM grammar_items gi ' + 
+      'LEFT JOIN items i ON i.item_id = gi.item_id ' + 
+      'LEFT JOIN subtopics s ON s.subtopic_id = i.subtopic_id ' + 
+      'LEFT JOIN levels l ON l.level_id = s.level_id ' + 
+      'WHERE l.level_name = ? ', 
+      [level_name]
+    );
+
+    return rows;
+  }
+
 }
 
 export default new grammar_item();
