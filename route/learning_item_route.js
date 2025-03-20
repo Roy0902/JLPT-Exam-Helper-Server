@@ -8,5 +8,6 @@ router.get('/get-subtopic-list', learning_item_controller.getSubtopicByCategoryN
 router.get('/get-character-item-list', learning_item_controller.getCharacterBySubtopicName);
 router.get('/get-grammar-item-list', learning_item_controller.getGrammarBySubtopicName);
 router.get('/get-learning-item-by-level', learning_item_controller.getLearningItemByLevelName);
+router.get('/get-learning-item-by-subtopic-name', learning_item_controller.getLearningItemBySubtopicName);
 
 export default router;

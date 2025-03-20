@@ -148,16 +148,55 @@ class learning_item_service{
           characterList = null;
         }
 
-        console.log("123")
-        const grammarList = await grammar_item.getGrammarByLevelName(level_name, connection)
+        let grammarList;
+        if(level_name !== 'Beginner'){
+           grammarList = await grammar_item.getGrammarByLevelName(level_name, connection)
+        }
+        
         if(!grammarList){
           grammarList = null;
         }
         await connection.commit();
-        console.log("Testing")
         return {statusCode: 201, 
                 message: 'Get learning item succcessfully.', 
-                data:{'charactList': characterList, 'grammarList': grammarList}}
+                data:{'characterList': characterList, 'grammarList': grammarList}}
+    } catch (error) {
+      if (connection) 
+        await connection.rollback();
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+      if (connection) 
+        connection.release();
+    }
+
+  };
+
+  async getLearningItemBySubtopicName(subtopic_name){
+    // Validate input
+    if (!subtopic_name) {
+      throw {statusCode: 400, message: '*Subtopic name are required.', data: null};
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        let characterList = await character_item.getCharacterBySubtopicName(subtopic_name, connection)
+        if(!characterList || characterList.length === 0){
+          characterList = null;
+        }
+
+        let grammarList = await grammar_item.getGrammarBySubtopicName(subtopic_name, connection)
+        
+        if(!grammarList || grammarList.length === 0){
+          grammarList = null;
+        }
+
+        await connection.commit();
+        return {statusCode: 201, 
+                message: 'Get learning item succcessfully.', 
+                data:{'characterList': characterList, 'grammarList': grammarList}}
     } catch (error) {
       if (connection) 
         await connection.rollback();

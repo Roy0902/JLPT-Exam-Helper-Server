@@ -49,7 +49,7 @@ class account {
       const [rows] = await connection.execute(       
         'SELECT a.account_id ' + 
         'FROM accounts a ' + 
-        'LEFT JOIN session_tokens s ON a.email = s.email '  + 
+        'INNER JOIN session_tokens s ON a.email = s.email '  + 
         'WHERE token =  ? ;',
         [session_token]
       );
