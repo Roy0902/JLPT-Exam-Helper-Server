@@ -27,5 +27,8 @@
     "uuid": "^9.0.1",
     "xml2js": "^0.6.2"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": "20.12.1"
+  }
 }

@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import jwt from'jsonwebtoken'
 import subtopic from '../model/subtopic.js';
 import character_item from '../model/character_item.js'
+import user_progress from '../model/user_progress.js';
 import grammar_item from '../model/grammar_item.js'
 import 'dotenv/config';
 
@@ -14,7 +15,7 @@ class learning_item_service{
           throw {statusCode: 400, message: '*Level and session token are required.', data: null};
         }
 
-        const decoded = jwt.verify(token, secret); 
+        const decoded = jwt.verify(token,process.env.JWT_SECRET); 
         const email = decoded.email; 
 
         if(!email){
@@ -27,11 +28,10 @@ class learning_item_service{
         try {
             connection = await pool.getConnection();
             await connection.beginTransaction();
-
+            const rows = user_progress.getUserProgressByEmail(email);
 
             await connection.commit();
-
-            return {statusCode: 201, message: 'Get user progress succcessfully.', data: null}
+            return {statusCode: 201, message: 'Get user progress succcessfully.', data: rows}
         } catch (error) {
           if (connection) 
             await connection.rollback();
@@ -42,11 +42,22 @@ class learning_item_service{
         }
     };
 
-    async getSubtopicByCategoryNameAndLevel(category_name, level_name){
+    async getSubtopicByCategoryNameAndLevel(category_name, level_name, session_token){
        
       // Validate input
       if (!category_name || !level_name) {
         throw {statusCode: 400, message: '*Category name and level name are required.', data: null};
+      }
+
+      if (!session_token) {
+        throw {statusCode: 400, message: '*Session Token is required.', data: null};
+      }
+
+      const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+      const email = decoded.email; 
+
+      if(!email){
+          throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
       }
 
       let connection;
@@ -54,13 +65,13 @@ class learning_item_service{
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const rows = await subtopic.getSubtopicByCategoryNameAndLevel(category_name, level_name, connection)
+          const rows = await subtopic.getSubtopicByCategoryNameAndLevel(category_name, level_name, email, connection)
           if(!rows){
             return {statusCode: 401, message: 'Unknown error.', data: null}
           }
           await connection.commit();
 
-          return {statusCode: 201, message: 'Get user progress succcessfully.', data: rows}
+          return {statusCode: 201, message: 'Get subtopic list succcessfully.', data: rows}
       } catch (error) {
         if (connection) 
           await connection.rollback();
@@ -207,6 +218,82 @@ class learning_item_service{
     }
 
   };
+
+  async updateUserProgress(subtopic_name, session_token){
+    if (!subtopic_name) {
+      throw {statusCode: 400, message: '*Subtopic name is required.', data: null};
+    }
+
+    if (!session_token) {
+      throw {statusCode: 400, message: '*Session Token is required.', data: null};
+    }
+
+    const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+    const email = decoded.email; 
+
+    if(!email){
+      throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+    } 
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const rows = await user_progress.updateUserProgress(subtopic_name, email, connection)
+        if(!rows){
+          return {statusCode: 401, message: 'Unknown error.', data: null}
+        }
+        await connection.commit();
+
+        return {statusCode: 201, message: 'Update progress sucessfully.', data: null}
+    } catch (error) {
+      if (connection) 
+        await connection.rollback();
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+      if (connection) 
+        connection.release();
+    }
+  }
+
+  async getCategoryProgress(level_name, session_token){
+    if (!level_name) {
+      throw {statusCode: 400, message: '*Level name is required.', data: null};
+    }
+
+    if (!session_token) {
+      throw {statusCode: 400, message: '*Session Token is required.', data: null};
+    }
+
+    const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+    const email = decoded.email; 
+
+    if(!email){
+      throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+    } 
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const rows = await user_progress.getCategoryProgress(level_name, email, connection)
+        if(!rows){
+          return {statusCode: 401, message: 'Unknown error.', data: null}
+        }
+        await connection.commit();
+
+        return {statusCode: 201, message: 'Get category sucessfully.', data: rows}
+    } catch (error) {
+      if (connection) 
+        await connection.rollback();
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+      if (connection) 
+        connection.release();
+    }
+  }
 }
 
 export default new learning_item_service();

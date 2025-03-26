@@ -104,14 +104,14 @@ class account_service{
           }
 
 
-          const isMatch = await bcrypt.compare(password, account.password_hash);
+          const isMatch = await bcrypt.compare(password, result.password_hash);
           if (!isMatch) {
             return { statusCode: 403, message: 'Incorrect email or password', data: null};
           }
 
           // Generate JWT token
           const token = jwt.sign(
-            {email: account.email},
+            {email: result.email},
             process.env.JWT_SECRET
           );
 

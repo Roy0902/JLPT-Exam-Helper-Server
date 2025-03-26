@@ -1,17 +1,34 @@
 class user_progress {
-    async getUserProgressByEmail(email,  connection = pool) {
+    async getCategoryProgress(level_name, email,  connection = pool) {
         const [rows] = await connection.execute(
-            'Select count(*) from  where token = ? and is_revoked = 0',
-            [session_tokens]
-          );
+              `SELECT c.category_name,
+                COUNT(DISTINCT s.subtopic_id) AS total_subtopics,
+                COUNT(up.user_progress_id) AS completed_subtopics
+              FROM subtopics s
+              INNER JOIN categories c ON s.category_id = c.category_id
+              INNER JOIN levels l ON s.level_id = l.level_id
+              LEFT JOIN user_progress up ON up.subtopic_id = s.subtopic_id
+              LEFT JOIN accounts a ON up.account_id = a.account_id AND a.email = ?
+              WHERE l.level_name = ?
+              GROUP BY c.category_name;`,
+              [email, level_name]);
+
+        return rows;
     }
-  
-    async getEmailByToken(session_tokens, connection = pool) {
+
+    async updateUserProgress(subtopic_name, email, connection = pool) {
       const [rows] = await connection.execute(
-        'Select email from session_tokens where token = ? and is_revoked = 0',
-        [session_tokens]
-      );
-  
-      return rows[0];
+          `INSERT INTO user_progress (account_id, subtopic_id, progress)
+           VALUES ((SELECT account_id FROM accounts WHERE email = ?),
+              (SELECT subtopic_id FROM subtopics WHERE name = ?),
+              1 )`, 
+          [email, subtopic_name]
+        );
+
+      return rows;
     }
-  }
+
+}
+
+
+export default new user_progress();

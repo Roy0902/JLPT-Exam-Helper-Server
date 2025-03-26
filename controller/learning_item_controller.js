@@ -18,15 +18,16 @@ class learning_item_controller {
         }
     };
 
-    getSubtopicByCategoryNameAndLevel = async (req, res) => {
+    getSubtopicList = async (req, res) => {
         try {
-            const {category_name, level_name} = req.query; 
+            const {category_name, level_name, session_token} = req.body; 
             const response = await learning_item_service.
-                             getSubtopicByCategoryNameAndLevel(category_name, level_name);
+                             getSubtopicByCategoryNameAndLevel(category_name, level_name, session_token);
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
+            console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }
     };
@@ -59,7 +60,6 @@ class learning_item_controller {
         try {
             const {subtopic_name} = req.query; 
             const response = await learning_item_service.getLearningItemBySubtopicName(subtopic_name);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -73,6 +73,35 @@ class learning_item_controller {
         try {
             const {level_name} = req.query; 
             const response = await learning_item_service.getLearningItemByLevel(level_name);
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            console.log(message)
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
+    updateUserProgress = async (req, res) => {
+        try {
+            const {subtopic_name, session_token} = req.body; 
+            const response = await learning_item_service.
+                             updateUserProgress(subtopic_name, session_token);
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            console.log(message)
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
+    getCategoryProgress = async (req, res) => {
+        try {
+            const {level_name, session_token} = req.body; 
+            const response = await learning_item_service.
+                             getCategoryProgress(level_name, session_token);
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;

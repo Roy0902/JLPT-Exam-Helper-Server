@@ -21,7 +21,7 @@ app.use('/google-tts', google_tts_route);
 app.use('/jisho', jisho_route);
 app.use('/forum', forum_route);
 
-const PORT = 8080;
+const PORT = process.env.PORT || 8080
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
