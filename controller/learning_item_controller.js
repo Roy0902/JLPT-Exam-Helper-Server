@@ -55,6 +55,18 @@ class learning_item_controller {
             return sendResponse(res, statusCode, message, null);   
         }
     };
+    
+    getVocabularyBySubtopicName = async (req, res) => {
+        try {
+            const {subtopic_name} = req.query; 
+            const response = await learning_item_service.getVocabularyBySubtopicName(subtopic_name);
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
 
     getLearningItemBySubtopicName = async (req, res) => {
         try {

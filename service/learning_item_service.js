@@ -5,6 +5,7 @@ import character_item from '../model/character_item.js'
 import user_progress from '../model/user_progress.js';
 import grammar_item from '../model/grammar_item.js'
 import 'dotenv/config';
+import vocabulary_item from '../model/vocabulary_item.js';
 
 class learning_item_service{
 
@@ -126,6 +127,36 @@ class learning_item_service{
         await connection.beginTransaction();
 
         const rows = await grammar_item.getGrammarBySubtopicName(subtopic_name, connection);
+        if(!rows){
+          return {statusCode: 401, message: 'Unknown error.', data: null}
+        }
+        await connection.commit();
+
+        return {statusCode: 201, message: 'Get grammar item succcessfully.', data: rows}
+    } catch (error) {
+      if (connection) 
+        await connection.rollback();
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+      if (connection) 
+        connection.release();
+    }
+
+  };
+
+  async getVocabularyBySubtopicName(subtopic_name){
+       
+    // Validate input
+    if (!subtopic_name) {
+      throw {statusCode: 400, message: '*Subtopic name is required.', data: null};
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const rows = await vocabulary_item.getVocabularyBySubtopicName(subtopic_name, connection);
         if(!rows){
           return {statusCode: 401, message: 'Unknown error.', data: null}
         }
