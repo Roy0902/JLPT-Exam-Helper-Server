@@ -17,7 +17,8 @@ class item {
 
   async getLearningItemFeatureBySubtopicID(subtopic_id_list, connection = pool) {
     const [rows] = await connection.execute(
-    `SELECT i.item_id, i.subtopic_id, c.category_name, l.level_name FROM items i
+    `SELECT vi.* , l.level_name, c.category_name, s.name FROM vocabulary vi
+     JOIN item i on vi.item_id = i.item_id 
      JOIN categories c ON i.category_id = c.category_id
      JOIN subtopics s ON i.subtopic_id = s.subtopic_id
      JOIN levels l ON s.level_id = l.level_id

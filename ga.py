@@ -2,6 +2,7 @@ import pygad
 import sys
 import json
 
+#Parameters from the server
 def parse_args(args):
     return {
         "daily_study_time": int(args[1]),
@@ -14,11 +15,14 @@ def parse_args(args):
         "sol_per_pop": int(args[8])
     }
 
+#Fitness function
 def fitness_function(ga_instance, solution, solution_idx):
+    #Local parameters
     params = ga_instance.custom_data
     vocab_groups = len(params["vocab_group_sizes"])
     grammar_groups = len(params["grammar_group_sizes"])
     total_activities = vocab_groups + grammar_groups + 1
+    
     
     vocab_group_counts = {f"V{i+1}": 0 for i in range(vocab_groups)}
     grammar_group_counts = {f"G{i+1}": 0 for i in range(grammar_groups)}
@@ -31,13 +35,13 @@ def fitness_function(ga_instance, solution, solution_idx):
         day_start = day * params["daily_study_time"]
         slots = solution[day_start:day_start + params["daily_study_time"]]
         time_used = sum(1 if 1 <= s <= vocab_groups else 
-                        2 if vocab_groups < s < total_activities 
-                        else 0 for s in slots)
+                        2 if vocab_groups < s < total_activities else 
+                        0 for s in slots)
         
         if time_used > params["daily_study_time"]:
             total_time_penalty -= 50 * (time_used - params["daily_study_time"])
-        elif time_used == params["daily_study_time"]:
-            time_bonus += 75
+        elif time_used <= params["daily_study_time"]:
+            time_bonus += 50
         
         vocab_count = sum(1 for s in slots if 1 <= s <= vocab_groups)
         grammar_count = sum(1 for s in slots if vocab_groups < s < total_activities)
@@ -98,7 +102,7 @@ if __name__ == "__main__":
     solution, solution_fitness, _ = ga_instance.best_solution()
     
     result = {
-        "daily_plan": solution[:params["daily_study_time"]].tolist(),
+        "study_plan": solution.tolist(),
         "score": float(solution_fitness)
     }
     

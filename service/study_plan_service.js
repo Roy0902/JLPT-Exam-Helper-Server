@@ -5,7 +5,7 @@ import item from '../model/item';
 
 class study_plan_service{
 
-    async generateStudyPlan(current_level, target_level, daily_study_time,
+    async generateStudyPlan(current_level, target_level, daily_study_time, days_to_exam,
                             perferences, session_token){
 
         if(!current_level || !target_level || !daily_study_time || !perferences || !session_token){
@@ -32,13 +32,13 @@ class study_plan_service{
             
             const subtopic_id_list = subtopic.map(row => row.subtopic_id)
             const item_group_list = await item.getLearningItemBySubtopicID(subtopic_id_list, connection)
-            const item_features_list = await item.getLearningItemFeatureBySubtopicID(subtopic_id_list, connection)
+            const vocab_features_list = await item.geVocabularyFeatureBySubtopicID(subtopic_id_list, connection)
 
             if (!item_group_list || !item_group_list.length) {
               return {statusCode: 400, message: '*Failed to get item_group_list', data: null};
             }
 
-            if (!item_features_list || !item_features_list.length) {
+            if (!vocab_features_list || !vocab_features_list.length) {
               return {statusCode: 400, message: '*Failed to get item_features_list', data: null};
             }
 
@@ -48,7 +48,7 @@ class study_plan_service{
             let vocabGoal = 0;
             let grmmarGoal = 0;
         
-            itemRows.forEach(row => {
+            item_group_list.forEach(row => {
               if (row.category_name === 'Vocabulary') {
                 vocabGroupSizes.push(row.item_count);
                 vocabGoal += row.item_count;
@@ -60,7 +60,7 @@ class study_plan_service{
 
             const params = {
               dailyStudyTime: daily_study_time,
-              daysToExam: 90,
+              daysToExam: days_to_exam,
               vocabGoal: vocabGoal,
               grammarGoal: grmmarGoal,
               vocabGroupSizes: vocabGroupSizes,
@@ -99,7 +99,7 @@ class study_plan_service{
                 try {
                   const result = JSON.parse(output);
 
-                  const {daily_plan, score} = result;
+                  const {study_plan, score} = result;
 
                   const levelToDifficulty = {
                     'N5': 1,
@@ -109,12 +109,17 @@ class study_plan_service{
                     'N1': 5
                   };
 
-                  const item_features = item_features_list.map(item_feature => ({
+                  const distinctPos = [...new Set(vocab_features_list.map(item => item.part_of_speech))]
+
+                  const vocab_item_features = vocab_features_list.map(item_feature => ({
                     item_id: item_feature.item_id,
-                    subtopic_id: item_feature.subtopic_id,
-                    category_name: item_feature.category_name,
-                    level_name: item_feature.level_name,
-                    difficulty: levelToDifficulty[item_feature.level_name] || -1
+                    daily_study_time: daily_study_time,
+                    study_plan: study_plan,
+                    days_to_exam: days_to_exam,
+                    difficulty: levelToDifficulty[item_feature.level_name] || -1,
+                    is_common: item_feature.frequency === 'Common' ? 1 : 0,
+                    part_of_speech: item_feature.part_of_speech || 'Unknown',
+                    word: item_feature.word
                   }));
               
                 } catch (e) {
