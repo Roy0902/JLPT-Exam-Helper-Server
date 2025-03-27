@@ -25,6 +25,25 @@ class subtopic {
 
     return rows;
   }
+
+  async getSubtopicByLevel(current_level_name, target_level_name, email, connection = pool) {
+    const [rows] = await connection.execute(
+      `SELECT s.* FROM subtopics s
+       JOIN levels l ON s.level_id = l.level_id
+       WHERE l.level_id BETWEEN 
+          (SELECT level_id FROM levels WHERE level_name = ?)
+          AND (SELECT level_id FROM levels WHERE level_name = ?)
+       AND s.subtopic_id NOT IN (
+          SELECT up.subtopic_id 
+          FROM user_progress up 
+          JOIN accounts a ON up.account_id = a.account_id 
+          WHERE a.email = ? `,      
+      [current_level_name, target_level_name, email]);
+
+    return rows;
+  }
+
+
 }
 
 export default new subtopic();

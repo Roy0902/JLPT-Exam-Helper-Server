@@ -113,7 +113,6 @@ class learning_item_controller {
             const {level_name, session_token} = req.body; 
             const response = await learning_item_service.
                              getCategoryProgress(level_name, session_token);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
