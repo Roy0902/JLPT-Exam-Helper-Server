@@ -15,7 +15,7 @@ class question {
         'LEFT JOIN replies r on r.question_id = q.question_id '+ 
         'LEFT JOIN accounts acc on q.account_id = acc.account_id ' +
         'GROUP BY q.question_id, acc.user_name ' +
-        'LIMIT ' + limit + ' OFFSET ' + offseZt
+        'LIMIT ' + limit + ' OFFSET ' + offset
     );
     return rows
   }

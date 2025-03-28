@@ -1,0 +1,200 @@
+CREATE DATABASE cs4514_jlpt_exam_helper_database;
+
+use cs4514_jlpt_exam_helper_database;
+
+CREATE TABLE otps (
+    otp_id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,             
+    otp_code VARCHAR(6) NOT NULL,  
+    is_used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP NOT NULL,    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP        
+);
+
+CREATE TABLE accounts (
+    account_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    user_name varchar(256) NOT NULL UNIQUE,
+    password_hash VARCHAR(1024),
+    is_active BOOLEAN DEFAULT TRUE,
+    failed_login_attempts INT DEFAULT 0,
+    last_login_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email)
+);
+
+
+CREATE TABLE session_tokens (
+  token_id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  token varchar(1024) NOT NULL,
+  is_revoked BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+  FOREIGN KEY (email) REFERENCES accounts(email)
+);
+
+CREATE TABLE categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(50) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE levels (
+    level_id INT AUTO_INCREMENT PRIMARY KEY,
+    level_name VARCHAR(10) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
+);
+
+
+CREATE TABLE subtopics (
+    subtopic_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    level_id INT NOT NULL, 
+    subtopic_name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE items (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    subtopic_id INT NOT NULL,
+    category_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (subtopic_id) REFERENCES subtopics(subtopic_id),
+    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+);
+
+
+CREATE TABLE hiragana_katakana_items (
+    item_id INT PRIMARY KEY,
+    japanese_character VARCHAR(20) NOT NULL,
+    romaji VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (item_id) REFERENCES items(item_id)
+);
+
+CREATE TABLE vocabulary_items (
+    item_id INT PRIMARY KEY,
+    word VARCHAR(50) NOT NULL,
+    reading VARCHAR(50) NOT NULL,
+    meaning TEXT NOT NULL,
+    example VARCHAR(256),
+    example_translation VARCHAR(256),
+    pitch_accent varchar(20), 
+    part_of_speech varchar(100), 
+    example_reading text, 
+    frequency varchar(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (item_id) REFERENCES items(item_id)
+);
+
+CREATE TABLE grammar_items (
+    item_id INT PRIMARY KEY,
+    rule VARCHAR(256) NOT NULL,
+    explanation TEXT NOT NULL,
+    example VARCHAR(256) NOT NULL,
+    example_translation VARCHAR(256),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (item_id) REFERENCES items(item_id)
+);
+
+CREATE TABLE listening_items (
+    item_id INT PRIMARY KEY,
+    sentence VARCHAR(255) NOT NULL,
+    audio_file VARCHAR(255) NOT NULL,
+    duration INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (item_id) REFERENCES items(item_id)
+);
+
+CREATE TABLE user_progress (
+    user_progress_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_id BIGINT NOT NULL,
+    subtopic_id INT NOT NULL,
+    progress INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id),
+    FOREIGN KEY (subtopic_id) REFERENCES subtopics(subtopic_id),
+    UNIQUE (account_id, subtopic_id)
+);
+
+
+CREATE INDEX idx_user_progress_user ON user_progress(account_id);
+CREATE INDEX idx_subtopics_level ON subtopics(level_id);
+
+CREATE TABLE questions (
+    question_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    account_id BIGINT NOT NULL,
+    question_title TEXT NOT NULL, 
+    question_description TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+);
+
+CREATE TABLE replies (
+    reply_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    question_id INT NOT NULL,
+    account_id BIGINT NOT NULL,
+    reply TEXT NOT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id)
+);
+
+CREATE TABLE bookmarks (
+    bookmark_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    account_id BIGINT NOT NULL,
+    item_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id),
+    FOREIGN KEY (item_id) REFERENCES items(item_id),
+    UNIQUE KEY unique_bookmark (account_id, item_id)
+);
+
+CREATE TABLE daily_study_plans (
+    daily_plan_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_id BIGINT NOT NULL,
+    plan_order INT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id),
+    UNIQUE (account_id, plan_order)
+);
+
+CREATE TABLE daily_study_plan_items (
+    daily_plan_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    daily_plan_id INT NOT NULL,
+    item_id INT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (daily_plan_id) REFERENCES daily_study_plans(daily_plan_id),
+    FOREIGN KEY (item_id) REFERENCES items(item_id),
+    UNIQUE (daily_plan_id, item_id) 
+);
+
+CREATE TABLE jlpt_exam_date (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    exam_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP        
+);
+
+CREATE INDEX idx_daily_plan_items_plan ON daily_study_plan_items(daily_plan_id);
+CREATE INDEX idx_daily_study_plans_date ON daily_study_plans(plan_date);

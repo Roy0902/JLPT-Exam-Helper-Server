@@ -185,7 +185,7 @@ class learning_item_service{
         connection = await pool.getConnection();
         await connection.beginTransaction();
 
-        const characterList = await character_item.getCharacterByLevelName(level_name, connection)
+        let characterList = await character_item.getCharacterByLevelName(level_name, connection)
         if(!characterList){
           characterList = null;
         }
@@ -235,10 +235,15 @@ class learning_item_service{
           grammarList = null;
         }
 
+        let vocabularyList = await vocabulary_item.getVocabularyBySubtopicName(subtopic_name, connection)
+        if(!vocabularyList || vocabularyList.length === 0){
+          vocabularyList = null;
+        }
+
         await connection.commit();
         return {statusCode: 201, 
                 message: 'Get learning item succcessfully.', 
-                data:{'characterList': characterList, 'grammarList': grammarList}}
+                data:{'characterList': characterList, 'grammarList': grammarList, 'vocabularyList': vocabularyList}}
     } catch (error) {
       if (connection) 
         await connection.rollback();

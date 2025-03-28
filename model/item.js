@@ -15,9 +15,9 @@ class item {
     return rows;
   }
 
-  async getLearningItemFeatureBySubtopicID(subtopic_id_list, connection = pool) {
+  async getVocabularyFeatureBySubtopicID(subtopic_id_list, connection = pool) {
     const [rows] = await connection.execute(
-    `SELECT vi.* , l.level_name, c.category_name, s.name FROM vocabulary vi
+    `SELECT vi.* , l.level_name, c.category_name, s.name FROM vocabulary_items vi
      JOIN item i on vi.item_id = i.item_id 
      JOIN categories c ON i.category_id = c.category_id
      JOIN subtopics s ON i.subtopic_id = s.subtopic_id
@@ -28,6 +28,21 @@ class item {
 
     return rows;
   }
+
+  async geGrammarFeatureBySubtopicID(subtopic_id_list, connection = pool) {
+    const [rows] = await connection.execute(
+    `SELECT gi.* , l.level_name, c.category_name, s.name FROM grammar_item vg
+     JOIN item i on gi.item_id = i.item_id 
+     JOIN categories c ON i.category_id = c.category_id
+     JOIN subtopics s ON i.subtopic_id = s.subtopic_id
+     JOIN levels l ON s.level_id = l.level_id
+     WHERE i.subtopic_id IN (?)` ,
+     [subtopic_id_list]
+    );
+
+    return rows;
+  }
+
 
 
 }

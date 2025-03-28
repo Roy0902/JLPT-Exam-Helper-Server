@@ -12,8 +12,18 @@ def parse_args(args):
         "vocab_group_sizes": list(map(int, args[5].split(','))),
         "grammar_group_sizes": list(map(int, args[6].split(','))),
         "num_generations": int(args[7]),
-        "sol_per_pop": int(args[8])
+        "sol_per_pop": int(args[8]),
+        "just_pass": args[9].lower() == "true",
+        "level": args[10] 
     }
+
+jlpt_passing = {
+    "N5": {"pass_score": 80, "section_min": 38},
+    "N4": {"pass_score": 90, "section_min": 38},
+    "N3": {"pass_score": 95, "section_min": 19},
+    "N2": {"pass_score": 90, "section_min": 19},
+    "N1": {"pass_score": 100, "section_min": 19}
+}
 
 #Fitness function
 def fitness_function(ga_instance, solution, solution_idx):
@@ -81,8 +91,17 @@ def fitness_function(ga_instance, solution, solution_idx):
 
 if __name__ == "__main__":
     params = parse_args(sys.argv)
-    vocab_groups = len(params["vocab_group_sizes"])
-    grammar_groups = len(params["grammar_group_sizes"])
+
+    level_data = jlpt_passing[params["level"]]
+    if params["just_pass"]:
+        total_max = params["vocab_goal"] + params["grammar_goal"]
+        passing_proportion = level_data["pass_score"] / 180  
+        vocab_groups = max(int(params["vocab_goal"] * passing_proportion), level_data["section_min"])
+        grammar_groups = max(int(params["grammar_goal"] * passing_proportion), level_data["section_min"])
+    else:
+        vocab_groups = params["vocab_goal"]
+        grammar_groups = params["grammar_goal"]
+
     total_activities = vocab_groups + grammar_groups + 1
     gene_space = list(range(total_activities))
     

@@ -72,6 +72,7 @@ class learning_item_controller {
         try {
             const {subtopic_name} = req.query; 
             const response = await learning_item_service.getLearningItemBySubtopicName(subtopic_name);
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
