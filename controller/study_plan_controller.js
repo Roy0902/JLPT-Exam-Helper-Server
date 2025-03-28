@@ -10,6 +10,7 @@ class study_plan_controller{
         try {
             const {token} = req.body;
             const response = await study_plan_service.getStudyPlan(token);
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -20,15 +21,19 @@ class study_plan_controller{
 
     generateStudyPlan = async (req, res) => {
         try {
-            const {current_level, target_level, daily_study_time, 
-                   perferences, session_token} = req.body;
-            const response = await study_plan_service.
-                                   generateStudyPlan(current_level, target_level, daily_study_time,
-                                                     perferences, session_token);
+            console.log("Test")
+            const {current_level, target_level, daily_study_time, days_to_exam,
+                   target_goal, session_token} = req.body;
+            const response = await study_plan_service.generateStudy_Plan(
+                current_level, target_level, daily_study_time, days_to_exam,
+                   target_goal, session_token
+              );
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
+            console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }
     };

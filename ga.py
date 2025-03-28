@@ -1,6 +1,7 @@
 import pygad
 import sys
 import json
+import sys
 
 #Parameters from the server
 def parse_args(args):
@@ -25,47 +26,67 @@ jlpt_passing = {
     "N1": {"pass_score": 100, "section_min": 19}
 }
 
+PARAMS = None
+
+def get_vocab_subgroup(activity, vocab_group_sizes):
+    if activity == 0:  # Idle time
+        return None
+    total = 0
+    for i, size in enumerate(vocab_group_sizes, 1):  # Start at 1 for subgroup numbering
+        total += size
+        if activity <= total:
+            return i
+    return None  
+
 #Fitness function
 def fitness_function(ga_instance, solution, solution_idx):
-    #Local parameters
-    params = ga_instance.custom_data
-    vocab_groups = len(params["vocab_group_sizes"])
-    grammar_groups = len(params["grammar_group_sizes"])
+    global PARAMS
+    vocab_groups = len(PARAMS["vocab_group_sizes"])
+    grammar_groups = len(PARAMS["grammar_group_sizes"])
     total_activities = vocab_groups + grammar_groups + 1
-    
     
     vocab_group_counts = {f"V{i+1}": 0 for i in range(vocab_groups)}
     grammar_group_counts = {f"G{i+1}": 0 for i in range(grammar_groups)}
     total_time_penalty = 0
-    balance_penalty = 0
     time_bonus = 0
-    balance_bonus = 0
+    balance_penalty = 0
+    subgroup_bonus = 0
+
+    vocab_threshold = sum(PARAMS["vocab_group_sizes"])  
     
-    for day in range(params["days_to_exam"]):
-        day_start = day * params["daily_study_time"]
-        slots = solution[day_start:day_start + params["daily_study_time"]]
-        time_used = sum(1 if 1 <= s <= vocab_groups else 
-                        2 if vocab_groups < s < total_activities else 
+    for day in range(PARAMS["days_to_exam"]):
+        day_start = day * PARAMS["daily_study_time"]
+        slots = solution[day_start:day_start + PARAMS["daily_study_time"]]
+        time_used = sum(1.5 if 1 <= s <= vocab_threshold else 
+                        3 if vocab_threshold < s < total_activities else 
                         0 for s in slots)
         
-        if time_used > params["daily_study_time"]:
-            total_time_penalty -= 50 * (time_used - params["daily_study_time"])
-        elif time_used <= params["daily_study_time"]:
-            time_bonus += 50
+        if time_used > PARAMS["daily_study_time"]:
+            total_time_penalty -= 50 * (time_used - PARAMS["daily_study_time"])
+        elif time_used <= PARAMS["daily_study_time"]:
+            time_bonus += 50 * (PARAMS["daily_study_time"] - time_used + 1)
         
-        vocab_count = sum(1 for s in slots if 1 <= s <= vocab_groups)
-        grammar_count = sum(1 for s in slots if vocab_groups < s < total_activities)
+        vocab_count = sum(1 for s in slots if 1 <= s <= vocab_threshold)
+        grammar_count = sum(1 for s in slots if vocab_threshold < s < total_activities)
         total_active = vocab_count + grammar_count
         if total_active > 0:
             vocab_ratio = vocab_count / total_active
-            if vocab_ratio > 0.8 or vocab_ratio < 0.2:
-                balance_penalty -= 20
-            elif 0.4 <= vocab_ratio <= 0.6:
-                balance_bonus += 20
+            if vocab_ratio < 0.2:
+                balance_penalty -= 100
+
+        subgroup_counts = {}
+        for s in slots:
+            if 1 <= s <= vocab_threshold:  
+                subgroup = get_vocab_subgroup(s, PARAMS["vocab_group_sizes"])
+                subgroup_counts[subgroup] = subgroup_counts.get(subgroup, 0) + 1
+        
+        for count in subgroup_counts.values():
+            if count > 1:  
+                subgroup_bonus += 10 * (count - 1)
     
-    for day in range(params["days_to_exam"]):
-        day_start = day * params["daily_study_time"]
-        slots = solution[day_start:day_start + params["daily_study_time"]]
+    for day in range(PARAMS["days_to_exam"]):
+        day_start = day * PARAMS["daily_study_time"]
+        slots = solution[day_start:day_start + PARAMS["daily_study_time"]]
         for s in slots:
             s = int(s)
             if 1 <= s <= vocab_groups:
@@ -76,45 +97,44 @@ def fitness_function(ga_instance, solution, solution_idx):
     sequence_penalty = 0
     for i in range(vocab_groups - 1):
         if (vocab_group_counts[f"V{i+2}"] > 0 and 
-            vocab_group_counts[f"V{i+1}"] < params["vocab_group_sizes"][i]):
-            sequence_penalty -= 10
+            vocab_group_counts[f"V{i+1}"] < PARAMS["vocab_group_sizes"][i]):
+            sequence_penalty -= 25
     for i in range(grammar_groups - 1):
         if (grammar_group_counts[f"G{i+2}"] > 0 and 
-            grammar_group_counts[f"G{i+1}"] < params["grammar_group_sizes"][i]):
-            sequence_penalty -= 10
+            grammar_group_counts[f"G{i+1}"] < PARAMS["grammar_group_sizes"][i]):
+            sequence_penalty -= 25
     
-    total_vocab = min(sum(vocab_group_counts.values()), params["vocab_goal"])
-    total_grammar = min(sum(grammar_group_counts.values()), params["grammar_goal"])
-    progress = total_vocab + 0.5 * total_grammar
+    total_vocab = min(sum(vocab_group_counts.values()), PARAMS["vocab_goal"])
+    total_grammar = min(sum(grammar_group_counts.values()), PARAMS["grammar_goal"])
+    progress = total_vocab + total_grammar
     
-    return progress + sequence_penalty + total_time_penalty + balance_penalty + time_bonus + balance_bonus
+    return progress + sequence_penalty + total_time_penalty + balance_penalty + time_bonus + subgroup_bonus
 
 if __name__ == "__main__":
-    params = parse_args(sys.argv)
+    PARAMS = parse_args(sys.argv)
 
-    level_data = jlpt_passing[params["level"]]
-    if params["just_pass"]:
-        total_max = params["vocab_goal"] + params["grammar_goal"]
+    level_data = jlpt_passing[PARAMS["level"]]
+    if PARAMS["just_pass"] == "true":
+        total_max = PARAMS["vocab_goal"] + PARAMS["grammar_goal"]
         passing_proportion = level_data["pass_score"] / 180  
-        vocab_groups = max(int(params["vocab_goal"] * passing_proportion), level_data["section_min"])
-        grammar_groups = max(int(params["grammar_goal"] * passing_proportion), level_data["section_min"])
+        vocab_groups = max(int(PARAMS["vocab_goal"] * passing_proportion), level_data["section_min"])
+        grammar_groups = max(int(PARAMS["grammar_goal"] * passing_proportion), level_data["section_min"])
     else:
-        vocab_groups = params["vocab_goal"]
-        grammar_groups = params["grammar_goal"]
+        vocab_groups = PARAMS["vocab_goal"]
+        grammar_groups = PARAMS["grammar_goal"]
 
     total_activities = vocab_groups + grammar_groups + 1
     gene_space = list(range(total_activities))
     
     ga_instance = pygad.GA(
-        num_generations=params["num_generations"],
-        sol_per_pop=params["sol_per_pop"],
-        num_genes=params["days_to_exam"] * params["daily_study_time"],
+        num_generations=PARAMS["num_generations"],
+        sol_per_pop=PARAMS["sol_per_pop"],
+        num_genes=PARAMS["days_to_exam"] * PARAMS["daily_study_time"],
         gene_space=gene_space,
         fitness_func=fitness_function,
         num_parents_mating=2,
         mutation_percent_genes=10,
         gene_type=int,
-        custom_data=params 
     )
     
     ga_instance.run()
@@ -122,7 +142,8 @@ if __name__ == "__main__":
     
     result = {
         "study_plan": solution.tolist(),
-        "score": float(solution_fitness)
+        "score": float(solution_fitness),
+        "total_activity": total_activities
     }
     
     print(json.dumps(result))
