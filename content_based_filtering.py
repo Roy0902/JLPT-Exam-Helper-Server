@@ -1,105 +1,112 @@
-import pygad
 import sys
 import json
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-
-def content_based_filtering(study_plan, 
-                            daily_study_time, 
-                            days_to_exam, 
-                            vocab_group_sizes, 
-                            grammar_group_sizes,
-                            item_features):
-    
-    # Organize vocab_item_features by cluster (item_id)
+def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam, 
+                            vocab_group_sizes, grammar_group_sizes, item_features, group_mapping):
+    # Preprocess item features by subtopic_id
     cluster_data = {}
-    all_words = []
+    all_items = []
     for item in item_features:
-        cluster_id = item["item_id"]
-        if cluster_id not in cluster_data:
-            cluster_data[cluster_id] = []
-        cluster_data[cluster_id].append(item)
-        all_words.append((item["word"], cluster_id, item.get("part_of_speech", "None"), item.get("is_common", 0), item["type"]))
+        subtopic_id = item["subtopic_id"]
+        if subtopic_id not in cluster_data:
+            cluster_data[subtopic_id] = []
+        cluster_data[subtopic_id].append(item)
+        all_items.append((item["word"], subtopic_id, item.get("part_of_speech", "None"), 
+                         item.get("is_common", 0), item["type"], item["item_id"]))
 
-    # Separate vocab for vectorization
-    vocab_items = [item for item in item_features if item["type"] == "vocab"]
-    pos_texts = [item["part_of_speech"] for item in vocab_items]
-    vectorizer = TfidfVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b")
-    pos_vectors = vectorizer.fit_transform(pos_texts).toarray()
-    is_common_values = np.array([[item["is_common"]] for item in vocab_items])
-    combined_vectors = np.hstack((pos_vectors, is_common_values))
-    
-    daily_materials = {}
-    for day in range(days_to_exam):
-        start = day * daily_study_time
-        slots = study_plan[start:start + daily_study_time]
-        daily_materials[day] = {}
-        
-        # Get words for this day's clusters
-        day_words = [(w, cid, pos, is_common, typ) for w, cid, pos, is_common, typ in all_words if cid in slots and cid != 0]
-        if not day_words:
-            for slot, cluster_id in enumerate(slots):
-                daily_materials[day][slot] = "Rest" if cluster_id == 0 else f"Cluster {cluster_id} (no data)"
-            continue
-        
-        # Vocab processing with similarity
-        day_vocab_indices = [i for i, item in enumerate(item_features) if item["type"] == "vocab" and item["item_id"] in slots and item["item_id"] != 0]
-        day_vocab_vectors = combined_vectors[[i for i, item in enumerate(vocab_items) if item["item_id"] in slots and item["item_id"] != 0]] if day_vocab_indices else np.array([])
-        
+    print(f"Available subtopics in item_features: {list(cluster_data.keys())}", file=sys.stderr)
+
+    # Vectorize vocab features
+    vocab_items = [item for item in item_features if item["type"] == "vocabulary"]
+    if vocab_items:
+        pos_texts = [item["part_of_speech"] for item in vocab_items]
+        vectorizer = TfidfVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b")
+        pos_vectors = vectorizer.fit_transform(pos_texts).toarray()
+        is_common_values = np.array([[item["is_common"]] for item in vocab_items])
+        combined_vectors = np.hstack((pos_vectors, is_common_values))
+    else:
+        combined_vectors = np.array([])
+
+    used_words = set()
+    daily_materials = []
+
+    for plans in daily_study_plan:
+        day_items_assigned = []  # List to store item_ids for this day
+        # Map GA group IDs to subtopic_id
+        mapped_slots = [group_mapping.get(str(p)) if p != 0 else 0 for p in plans]
+
+        # Filter items based on mapped subtopics
+        day_items = [(w, sid, pos, is_common, typ, iid) for w, sid, pos, is_common, typ, iid in all_items 
+                     if sid in mapped_slots and sid != 0]
+
+        # Prepare vocab vectors
+        day_vocab_indices = [i for i, item in enumerate(item_features) 
+                            if item["type"] == "vocabulary" and item["subtopic_id"] in mapped_slots and item["subtopic_id"] != 0]
+        day_vocab_vectors = combined_vectors[[i for i, item in enumerate(vocab_items) 
+                                             if item["subtopic_id"] in mapped_slots and item["subtopic_id"] != 0]] if day_vocab_indices else np.array([])
+
         vocab_sorted_indices = []
         if len(day_vocab_vectors) > 0:
-            seed_vector = np.mean(day_vocab_vectors, axis=0)
+            seed_vector = day_vocab_vectors[0] if len(day_vocab_vectors) == 1 else np.mean(day_vocab_vectors, axis=0)
             similarity_scores = cosine_similarity([seed_vector], day_vocab_vectors)[0]
-            day_vocab_words = [(i, similarity_scores[i], all_words[day_vocab_indices[i]][3]) for i in range(len(similarity_scores))]
+            day_vocab_words = [(i, similarity_scores[i], all_items[day_vocab_indices[i]][3]) 
+                              for i in range(len(similarity_scores))]
             vocab_sorted = sorted(day_vocab_words, key=lambda x: (x[1], x[2]), reverse=True)
             vocab_sorted_indices = [x[0] for x in vocab_sorted]
+        else:
+            vocab_sorted_indices = [i for i, item in enumerate(vocab_items) 
+                                   if item["subtopic_id"] in mapped_slots and item["subtopic_id"] != 0]
+            vocab_sorted_indices.sort(key=lambda i: vocab_items[i]["is_common"], reverse=True)
 
-        used_words = set()
-        for slot, cluster_id in enumerate(slots):
-            if cluster_id == 0:
-                daily_materials[day][slot] = "Rest"
+        # Iterate over mapped_slots
+        for slot_idx, subtopic_id in enumerate(mapped_slots):
+            ga_group_id = plans[slot_idx]
+            if subtopic_id == 0:  # Skip rest slots
                 continue
-            if cluster_id not in cluster_data:
-                daily_materials[day][slot] = f"Cluster {cluster_id} (no data)"
+            if subtopic_id not in cluster_data:
+                print(f"Subtopic {subtopic_id} (GA group {ga_group_id}) not found in item_features", file=sys.stderr)
                 continue
-            
-            # Determine size based on cluster type
-            is_vocab_cluster = cluster_id <= len(vocab_group_sizes)
-            size = vocab_group_sizes[cluster_id - 1] if is_vocab_cluster else grammar_group_sizes[cluster_id - len(vocab_group_sizes) - 1]
-            
-            cluster_words = [(w, cid, pos, is_common, typ) for w, cid, pos, is_common, typ in day_words if cid == cluster_id and w not in used_words]
-            if not cluster_words:
-                daily_materials[day][slot] = []
+
+            # Determine group size using original GA group ID (for validation, not size enforcement)
+            is_vocab_cluster = ga_group_id <= len(vocab_group_sizes)
+            try:
+                size = (vocab_group_sizes[ga_group_id - 1] if is_vocab_cluster 
+                        else grammar_group_sizes[ga_group_id - len(vocab_group_sizes) - 1])
+            except IndexError:
+                print(f"Error: GA group ID {ga_group_id} exceeds group sizes (vocab: {len(vocab_group_sizes)}, grammar: {len(grammar_group_sizes)})", file=sys.stderr)
                 continue
-            
-            # Handle vocab vs grammar
+
+            # Select available items
+            cluster_items = [(w, sid, pos, is_common, typ, iid) for w, sid, pos, is_common, typ, iid in day_items 
+                            if sid == subtopic_id and w not in used_words]
+            if not cluster_items:  # Skip if no items available
+                continue
+
+            # Assign exactly 1 item
             if is_vocab_cluster:
-                # Vocab: Use similarity + frequency
-                cluster_indices = [i for i in vocab_sorted_indices if all_words[day_vocab_indices[i]][1] == cluster_id and all_words[day_vocab_indices[i]][0] not in used_words]
-                selected = [all_words[day_vocab_indices[i]] for i in cluster_indices[:size]]
+                cluster_indices = [i for i in vocab_sorted_indices 
+                                  if all_items[day_vocab_indices[i]][1] == subtopic_id and 
+                                  all_items[day_vocab_indices[i]][0] not in used_words]
+                selected = [all_items[day_vocab_indices[cluster_indices[0]]]] if cluster_indices else []
             else:
-                # Grammar: Assign directly (no features to sort)
-                selected = cluster_words[:size]
-            
-            for word, _, _, _, _ in selected:
-                used_words.add(word)
-            daily_materials[day][slot] = [w for w, _, _, _, _ in selected]
-    
-    return daily_materials
+                selected = [sorted(cluster_items, key=lambda x: x[3], reverse=True)[0]]
 
+            if selected:
+                item_id = selected[0][5]  # Single item_id
+                used_words.add(selected[0][0])
+                day_items_assigned.append(item_id)  # Add to day's list
+
+        daily_materials.append(day_items_assigned)
+
+    return daily_materials
 
 if __name__ == "__main__":
     input_data = json.loads(sys.stdin.read())
-
-    study_plan = input_data["studyPlan"]
-    daily_study_time = input_data["dailyStudyTime"]
-    days_to_exam = input_data["daysToExam"]
-    vocab_group_sizes = input_data["vocabGroupSizes"]
-    grammar_group_sizes = input_data["grammar_group_sizes"]
-    item_features = input_data["itemFeatures"]
-
-    materials = content_based_filtering(study_plan, daily_study_time, days_to_exam, 
-                                        vocab_group_sizes, grammar_group_sizes, item_features)
+    materials = content_based_filtering(input_data["dailyStudyPlan"], input_data["dailyStudyTime"], 
+                                        input_data["daysToExam"], input_data["vocabGroupSizes"], 
+                                        input_data["grammarGroupSizes"], input_data["itemFeatures"], 
+                                        input_data["groupMapping"])
     print(json.dumps(materials))

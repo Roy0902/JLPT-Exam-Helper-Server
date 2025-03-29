@@ -2,6 +2,7 @@ import pygad
 import sys
 import json
 import sys
+import numpy as np
 
 #Parameters from the server
 def parse_args(args):
@@ -12,10 +13,8 @@ def parse_args(args):
         "grammar_goal": int(args[4]),
         "vocab_group_sizes": list(map(int, args[5].split(','))),
         "grammar_group_sizes": list(map(int, args[6].split(','))),
-        "num_generations": int(args[7]),
-        "sol_per_pop": int(args[8]),
-        "just_pass": args[9].lower() == "true",
-        "level": args[10] 
+        "just_pass": args[7].lower() == "true",
+        "level": args[8] 
     }
 
 jlpt_passing = {
@@ -28,16 +27,55 @@ jlpt_passing = {
 
 PARAMS = None
 
-def get_vocab_subgroup(activity, vocab_group_sizes):
-    if activity == 0:  # Idle time
-        return None
-    total = 0
-    for i, size in enumerate(vocab_group_sizes, 1):  # Start at 1 for subgroup numbering
-        total += size
-        if activity <= total:
-            return i
-    return None  
-
+def on_start(ga_instance):
+    global PARAMS
+    vocab_groups = len(PARAMS["vocab_group_sizes"])
+    grammar_groups = len(PARAMS["grammar_group_sizes"])
+    total_activities = vocab_groups + grammar_groups + 1
+    vocab_time_cost = 1.25
+    grammar_time_cost = 2
+    
+    # Calculate solution size and total group sizes
+    solution_size = PARAMS["days_to_exam"] * PARAMS["daily_study_time"]
+    total_vocab_size = sum(PARAMS["vocab_group_sizes"])
+    total_grammar_size = sum(PARAMS["grammar_group_sizes"])
+    total_material_size = total_vocab_size + total_grammar_size
+    
+    idle_weight = max(1, solution_size / (total_material_size + 1)) * 0.05
+    vocab_weights = PARAMS["vocab_group_sizes"]  
+    grammar_weights = PARAMS["grammar_group_sizes"]  
+    weights = [idle_weight] + vocab_weights + grammar_weights
+    probabilities = [w / sum(weights) for w in weights]  
+    
+    initial_population = []
+    for _ in range(100):
+        solution = np.zeros(solution_size, dtype=int)
+        for day in range(PARAMS["days_to_exam"]):
+            day_start = day * PARAMS["daily_study_time"]
+            available_slots = list(range(day_start, day_start + PARAMS["daily_study_time"]))
+            np.random.shuffle(available_slots)
+            time_left = PARAMS["daily_study_time"]
+            
+            for slot in available_slots:
+                if time_left >= grammar_time_cost:
+                    activity = np.random.choice(total_activities, p=probabilities)
+                    time_cost = (vocab_time_cost if 1 <= activity <= vocab_groups else 
+                                grammar_time_cost if activity > vocab_groups else 0)
+                    if time_cost <= time_left:
+                        solution[slot] = activity
+                        time_left -= time_cost
+                elif time_left >= vocab_time_cost:
+                    vocab_probs = probabilities[0:vocab_groups + 1] 
+                    vocab_probs = [p / sum(vocab_probs) for p in vocab_probs] 
+                    activity = np.random.choice(vocab_groups + 1, p=vocab_probs)
+                    if activity > 0: 
+                        solution[slot] = activity
+                        time_left -= vocab_time_cost
+                else:
+                    break  
+        initial_population.append(solution)
+    ga_instance.population = np.array(initial_population)
+    
 #Fitness function
 def fitness_function(ga_instance, solution, solution_idx):
     global PARAMS
@@ -45,70 +83,83 @@ def fitness_function(ga_instance, solution, solution_idx):
     grammar_groups = len(PARAMS["grammar_group_sizes"])
     total_activities = vocab_groups + grammar_groups + 1
     
-    vocab_group_counts = {f"V{i+1}": 0 for i in range(vocab_groups)}
-    grammar_group_counts = {f"G{i+1}": 0 for i in range(grammar_groups)}
-    total_time_penalty = 0
-    time_bonus = 0
-    balance_penalty = 0
-    subgroup_bonus = 0
+    vocab_group_counts = {i + 1: 0 for i in range(vocab_groups)}  # e.g., {1: 0, 2: 0, 3: 0}
+    grammar_group_counts = {i + 1: 0 for i in range(grammar_groups)}
 
-    vocab_threshold = sum(PARAMS["vocab_group_sizes"])  
-    
+    overassignment_penalty = 0 
+    time_penalty = 0
+    underachievement_penalty = 0
+    vocab_balance_penalty = 0
+
+    clustering_bonus = 0
+
+    # Process each day and update counts
     for day in range(PARAMS["days_to_exam"]):
         day_start = day * PARAMS["daily_study_time"]
         slots = solution[day_start:day_start + PARAMS["daily_study_time"]]
-        time_used = sum(1.5 if 1 <= s <= vocab_threshold else 
-                        3 if vocab_threshold < s < total_activities else 
+        
+        # Calculate time used based on gene_space indices, not vocab_threshold
+        time_used = sum(1.25 if 1 <= s <= vocab_groups else 
+                        2 if vocab_groups < s < total_activities else 
                         0 for s in slots)
         
         if time_used > PARAMS["daily_study_time"]:
-            total_time_penalty -= 50 * (time_used - PARAMS["daily_study_time"])
-        elif time_used <= PARAMS["daily_study_time"]:
-            time_bonus += 50 * (PARAMS["daily_study_time"] - time_used + 1)
-        
-        vocab_count = sum(1 for s in slots if 1 <= s <= vocab_threshold)
-        grammar_count = sum(1 for s in slots if vocab_threshold < s < total_activities)
-        total_active = vocab_count + grammar_count
-        if total_active > 0:
-            vocab_ratio = vocab_count / total_active
-            if vocab_ratio < 0.2:
-                balance_penalty -= 100
+            return -float('inf')  # Hard constraint: reject infeasible solutions
 
-        subgroup_counts = {}
-        for s in slots:
-            if 1 <= s <= vocab_threshold:  
-                subgroup = get_vocab_subgroup(s, PARAMS["vocab_group_sizes"])
-                subgroup_counts[subgroup] = subgroup_counts.get(subgroup, 0) + 1
+        time_usage = time_used / PARAMS['daily_study_time']
+        target_min = 0.5
+        if time_usage > 0.1 and time_usage < target_min:
+            vocab_balance_penalty -= 4
+
+        # Update subgroup counts
+        day_vocab_counts = {i + 1: 0 for i in range(vocab_groups)}  # Reset per day
+        day_grammar_counts = {i + 1: 0 for i in range(grammar_groups)}
         
-        for count in subgroup_counts.values():
-            if count > 1:  
-                subgroup_bonus += 10 * (count - 1)
-    
-    for day in range(PARAMS["days_to_exam"]):
-        day_start = day * PARAMS["daily_study_time"]
-        slots = solution[day_start:day_start + PARAMS["daily_study_time"]]
         for s in slots:
             s = int(s)
             if 1 <= s <= vocab_groups:
-                vocab_group_counts[f"V{s}"] += 1
+                day_vocab_counts[s] += 1
+                vocab_group_counts[s] += 1  # For overall progress
             elif vocab_groups < s < total_activities:
-                grammar_group_counts[f"G{s - vocab_groups}"] += 1
+                day_grammar_counts[s - vocab_groups] += 1
+                grammar_group_counts[s - vocab_groups] += 1
+
+
+        for count in day_vocab_counts.values():
+            if count > 1:
+                clustering_bonus += count * 2
+        
+        for count in day_grammar_counts.values():
+            if count > 1:
+                clustering_bonus += count * 2
+
+    # Calculate progress with size caps and overassignment penalty
+    vocab_progress = 0
+    for group, count in vocab_group_counts.items():
+        group_size = PARAMS["vocab_group_sizes"][group - 1] 
+        vocab_progress += min(count, group_size)  
+        if count > group_size: 
+            overassignment_penalty -= 2 * (count - group_size)  
+
+    vocab_progress = min(vocab_progress, PARAMS["vocab_goal"])
+
+    grammar_progress = 0
+    for group, count in grammar_group_counts.items():
+        group_size = PARAMS["grammar_group_sizes"][group - 1]  
+        grammar_progress += min(count, group_size) 
+        if count > group_size:
+            overassignment_penalty -= 2 * (count - group_size)
+
+    grammar_progress = min(grammar_progress, PARAMS["grammar_goal"]) 
+
+    progress = vocab_progress + grammar_progress
+
+    total_goal = PARAMS["vocab_goal"] + PARAMS["grammar_goal"]
+    if progress < total_goal:
+        underachievement_penalty = -2 * (total_goal - progress)
     
-    sequence_penalty = 0
-    for i in range(vocab_groups - 1):
-        if (vocab_group_counts[f"V{i+2}"] > 0 and 
-            vocab_group_counts[f"V{i+1}"] < PARAMS["vocab_group_sizes"][i]):
-            sequence_penalty -= 25
-    for i in range(grammar_groups - 1):
-        if (grammar_group_counts[f"G{i+2}"] > 0 and 
-            grammar_group_counts[f"G{i+1}"] < PARAMS["grammar_group_sizes"][i]):
-            sequence_penalty -= 25
-    
-    total_vocab = min(sum(vocab_group_counts.values()), PARAMS["vocab_goal"])
-    total_grammar = min(sum(grammar_group_counts.values()), PARAMS["grammar_goal"])
-    progress = total_vocab + total_grammar
-    
-    return progress + sequence_penalty + total_time_penalty + balance_penalty + time_bonus + subgroup_bonus
+    fitness = progress + time_penalty + overassignment_penalty + underachievement_penalty + clustering_bonus + vocab_balance_penalty
+    return fitness
 
 if __name__ == "__main__":
     PARAMS = parse_args(sys.argv)
@@ -123,18 +174,19 @@ if __name__ == "__main__":
         vocab_groups = PARAMS["vocab_goal"]
         grammar_groups = PARAMS["grammar_goal"]
 
-    total_activities = vocab_groups + grammar_groups + 1
+    total_activities = len(PARAMS["vocab_group_sizes"]) + len(PARAMS["grammar_group_sizes"]) + 1
     gene_space = list(range(total_activities))
     
     ga_instance = pygad.GA(
-        num_generations=PARAMS["num_generations"],
-        sol_per_pop=PARAMS["sol_per_pop"],
+        num_generations=100,
+        sol_per_pop=100,
         num_genes=PARAMS["days_to_exam"] * PARAMS["daily_study_time"],
         gene_space=gene_space,
         fitness_func=fitness_function,
-        num_parents_mating=2,
-        mutation_percent_genes=10,
+        num_parents_mating=35,
+        mutation_percent_genes=12,
         gene_type=int,
+        on_start=on_start
     )
     
     ga_instance.run()
@@ -143,7 +195,6 @@ if __name__ == "__main__":
     result = {
         "study_plan": solution.tolist(),
         "score": float(solution_fitness),
-        "total_activity": total_activities
     }
     
     print(json.dumps(result))

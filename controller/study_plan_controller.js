@@ -10,7 +10,6 @@ class study_plan_controller{
         try {
             const {token} = req.body;
             const response = await study_plan_service.getStudyPlan(token);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -21,7 +20,6 @@ class study_plan_controller{
 
     generateStudyPlan = async (req, res) => {
         try {
-            console.log("Test")
             const {current_level, target_level, daily_study_time, days_to_exam,
                    target_goal, session_token} = req.body;
             const response = await study_plan_service.generateStudy_Plan(
@@ -41,7 +39,6 @@ class study_plan_controller{
     getJLPTExamDate = async (req, res) => {
         try {
             const response = await study_plan_service.getJLPTExamDate()    
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
