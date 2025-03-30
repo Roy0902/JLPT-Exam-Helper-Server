@@ -193,7 +193,41 @@ class account_service{
         if (connection) 
           connection.release();
     }
-};
+  };
+
+  async updateFirebaseToken(session_token, firebase_token){
+    // Validate inputs
+    if (!session_token || !firebase_token) {
+      throw {statusCode: 400, message: '*Session token and firebase token are required.'};
+    }
+
+    const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+    const email = decoded.email; 
+
+    if (!email) {
+        throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+    }
+
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        await account.updateFirebaseTokenByEmail(email, firebase_token, connection);
+
+        await connection.commit();
+
+        return {statusCode: 201, message: 'Update Firebase Token successfully.', data: firebase_token};
+    } catch (error) {
+        if (connection) 
+          await connection.rollback();
+        return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+        if (connection) 
+          connection.release();
+    }
+  };
 
 }
 

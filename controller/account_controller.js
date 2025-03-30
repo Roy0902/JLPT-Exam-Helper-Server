@@ -53,6 +53,19 @@ class account_controller {
             return sendResponse(res, statusCode, message, null);   
         }
     };
+
+    updateFirebaseToken = async (req, res) => {
+        try {
+            const {session_token, firebase_token} = req.body;
+            const response = await account_service.updateFirebaseToken(session_token, firebase_token);
+            console.log(response)
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
 }
 
 export default new account_controller();

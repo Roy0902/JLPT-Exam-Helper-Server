@@ -91,7 +91,7 @@ class study_plan_service{
     }
     }
 
-    async getStudyPlan(session_token){
+    async getStudyPlanSummary(session_token){
       if(!session_token){
         throw {statusCode: 400, message: '*Session Token is required.', data: null};
      }
@@ -108,7 +108,7 @@ class study_plan_service{
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const row = await study_plan.getStudyPlan(email, connection)
+          const row = await study_plan.getStudyPlanSummary(email, connection)
 
           return {statusCode: 201, message: 'Get Study Plan Successfully.', data: row};
       }catch (error) {

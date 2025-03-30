@@ -4,12 +4,15 @@ const sendResponse = (res, code, message, data) => {
     return res.json({code: code, message: message, data: data });
 };
 
+const runningGenerateStudyPlan = new Map();
+
 class study_plan_controller{
 
-    getStudyPlan = async (req, res) => {
+    getStudyPlanSummary = async (req, res) => {
         try {
             const {token} = req.body;
-            const response = await study_plan_service.getStudyPlan(token);
+            const response = await study_plan_service.getStudyPlanSummary(token);
+            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -22,17 +25,26 @@ class study_plan_controller{
         try {
             const {current_level, target_level, daily_study_time, days_to_exam,
                    target_goal, session_token} = req.body;
+
+            if(runningGenerateStudyPlan.has(session_token)){
+                sendResponse(res, 400, "You have already requested to generate a new plan.", null);
+            }
+
+            runningGenerateStudyPlan.set(session_token, 0)
+
             const response = await study_plan_service.generateStudy_Plan(
                 current_level, target_level, daily_study_time, days_to_exam,
                    target_goal, session_token
               );
-              console.log(response)
+
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
             console.log(message)
             return sendResponse(res, statusCode, message, null);   
+        }finally{
+            runningGenerateStudyPlan.delete(session_token)
         }
     };
 

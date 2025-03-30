@@ -56,6 +56,14 @@ class account {
       return rows[0];
     };
 
+    async updateFirebaseTokenByEmail(email, firebase_token, connection = pool) {
+      await connection.execute(
+        'UPDATE accounts SET firebase_token = ? WHERE email = ?',
+        [firebase_token, email]
+      );
+    };
+
+
   }
   
   export default new account();
