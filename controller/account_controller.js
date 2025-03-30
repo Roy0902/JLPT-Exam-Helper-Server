@@ -58,7 +58,6 @@ class account_controller {
         try {
             const {session_token, firebase_token} = req.body;
             const response = await account_service.updateFirebaseToken(session_token, firebase_token);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;

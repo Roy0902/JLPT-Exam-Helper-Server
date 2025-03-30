@@ -12,11 +12,24 @@ class study_plan_controller{
         try {
             const {token} = req.body;
             const response = await study_plan_service.getStudyPlanSummary(token);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
+    getStudyPlan = async (req, res) => {
+        try {
+            const {token} = req.body;
+            const response = await study_plan_service.getStudyPlan(token);
+            console.log(response.statusCode)
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }
     };
@@ -28,14 +41,17 @@ class study_plan_controller{
 
             if(runningGenerateStudyPlan.has(session_token)){
                 sendResponse(res, 400, "You have already requested to generate a new plan.", null);
+                return;
             }
 
             runningGenerateStudyPlan.set(session_token, 0)
 
             const response = await study_plan_service.generateStudy_Plan(
                 current_level, target_level, daily_study_time, days_to_exam,
-                   target_goal, session_token
-              );
+                target_goal, session_token
+            );
+
+            runningGenerateStudyPlan.delete(session_token)
 
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
@@ -44,7 +60,7 @@ class study_plan_controller{
             console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }finally{
-            runningGenerateStudyPlan.delete(session_token)
+            
         }
     };
 

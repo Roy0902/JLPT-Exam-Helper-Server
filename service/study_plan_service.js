@@ -7,6 +7,7 @@ import jlpt_exam_date from '../model/jlpt_exam_date.js'
 import item from '../model/item.js';
 import {spawn} from 'child_process';
 import account from '../model/account.js';
+import firebase_service from './firebase_service.js';
 
 async function runGA(args) {
   return new Promise((resolve, reject) => {
@@ -41,7 +42,6 @@ async function runCBF(params, scriptPath = './content_based_filtering.py') {
     let output = '';
     let errorOutput = '';
 
-    // Send JSON input via stdin
     pythonProcess.stdin.write(JSON.stringify(params));
     pythonProcess.stdin.end();
 
@@ -110,6 +110,8 @@ class study_plan_service{
 
           const row = await study_plan.getStudyPlanSummary(email, connection)
 
+          connection.commit()
+
           return {statusCode: 201, message: 'Get Study Plan Successfully.', data: row};
       }catch (error) {
         if (connection) {
@@ -121,6 +123,39 @@ class study_plan_service{
           connection.release();
         }
     }
+
+  }
+
+  async getStudyPlan(session_token){
+    if(!session_token){
+      throw {statusCode: 400, message: '*Session Token is required.', data: null};
+   }
+      
+    const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+    const email = decoded.email; 
+
+    if (!email) {
+        throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const row = await study_plan.getStudyPlan(email, connection)
+
+        return {statusCode: 201, message: 'Get Study Plan Successfully.', data: row};
+    }catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+  } finally {
+      if (connection) {
+        connection.release();
+      }
+  }
 
   }
   
@@ -229,8 +264,9 @@ class study_plan_service{
 
 
           const result = await runGA(args)
-          const {study_plans, score} = result;           //Result of GA
+          const {study_plans, score} = result;     //Result of GA
 
+          console.log(score)
           //Bad study plan
           /*if(score <= 0){
             return {statusCode: 500, message: '*Bad Study Plan', data: null};
@@ -251,7 +287,6 @@ class study_plan_service{
             subtopic_id_map[index + 1] = subtopic_id; 
           });
 
-          console.log("Vocab")
           grammar_subtopic_id.forEach((subtopic_id, index) => {
             subtopic_id_map[vocab_group_sizes.length + index + 1] = subtopic_id;
           });
@@ -270,7 +305,6 @@ class study_plan_service{
             word: item_feature.word,
             type: "vocabulary"
           }));
-
                 
           const grammar_item_features = grammar_features_list.map(item_feature => ({
             item_id: item_feature.item_id,
@@ -297,10 +331,15 @@ class study_plan_service{
           const acc = await account.getAccountByEmail(email, connection)
 
           if(!acc){
-            return {statusCode: 400, message: 'Accoutn not found.', data: null};
+            return {statusCode: 400, message: 'Account not found.', data: null};
           }
 
-          study_plan.insertStudyPlan(acc.account_id, cbf_result, connection)
+
+          await study_plan.deleteExistStudyPlan(acc.account_id, connection)
+          await study_plan.insertStudyPlan(acc.account_id, score, cbf_result, connection)
+          await firebase_service.sendNotificationToUser(acc.firebase_token)
+
+          await connection.commit()
 
           return {statusCode: 201, message: 'Study Plan generated.', data: null};
       } catch (error) {

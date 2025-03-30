@@ -4,10 +4,12 @@ class study_plan {
 
   async getStudyPlanSummary(email, connection = pool) {
     const [rows] = await connection.execute(
-      `SELECT SUM(CASE WHEN dsp.is_completed = TRUE THEN 1 ELSE 0 END) AS completed_study_plan,
-       COUNT(dsp.daily_plan_id) AS total_study_plan FROM daily_study_plans dsp
-       JOIN accounts a ON dsp.account_id = a.account_id
-       WHERE a.email = ? ;`, 
+      `SELECT SUM(CASE WHEN spi.is_completed = TRUE THEN 1 ELSE 0 END) AS completed_study_plan,
+       COUNT(spi.study_plan_item_id) AS total_study_plan, sp.fitness_score FROM study_plan_items spi
+       JOIN study_plan sp on sp.study_plan_id = spi.study_plan_id
+       JOIN accounts a ON sp.account_id = a.account_id
+       WHERE a.email = ? 
+       GROUP BY sp.study_plan_id`, 
       [email]
     );
 
@@ -16,37 +18,45 @@ class study_plan {
 
   async getStudyPlan(email, connection = pool) {
     const [rows] = await connection.execute(
-      `SELECT * FROM daily_study_plans dsp
-       JOIN accounts a ON dsp.account_id = a.account_id
-       WHERE a.email = ? 
-       ORDER BY plan_order asc ;`, 
+      `SELECT spi.* FROM study_plan_items spi
+       JOIN study_plan sp on spi.study_plan_id = sp.study_plan_id
+       JOIN accounts a ON sp.account_id = a.account_id
+       WHERE a.email = ? `, 
       [email]
     );
 
-    return rows[0];
+    return rows;
   }
 
-  async insertStudyPlan(account_id, cbf_result, connection = pool) {
+  async deleteExistStudyPlan(account_id, connection = pool) {
+    await connection.execute(
+      `DELETE sp FROM study_plan sp
+       JOIN accounts a ON sp.account_id = a.account_id
+       WHERE a.account_id = ? ;` ,
+      [account_id]
+    );
+
+  }
+
+  async insertStudyPlan(account_id, fitness_score, cbf_result, connection = pool) {
+
+    const [rows] = await connection.execute(
+      'INSERT INTO study_plan (account_id, fitness_score) VALUES (?, ?)',
+      [account_id, fitness_score]
+    );
 
     for (let dayIndex = 0; dayIndex < cbf_result.length; dayIndex++) {
         const dayItems = cbf_result[dayIndex]; 
-        const planOrder = dayIndex + 1; 
 
-      
-      const [planResult] = await connection.execute(
-          'INSERT INTO daily_study_plans (account_id, plan_order) VALUES (?, ?)',
-          [account_id, planOrder]
+        let item_id_string = "";
+        for (const itemId of dayItems) {
+            item_id_string += itemId +','
+        }
+
+        await connection.execute(
+          'INSERT INTO study_plan_items (study_plan_id, item_id_string) VALUES (?, ?)',
+          [rows.insertId, item_id_string]
       );
-
-      const dailyPlanId = planResult.insertId;
-
-      // Insert each item into daily_study_plan_items
-      for (const itemId of dayItems) {
-          await connection.execute(
-              'INSERT INTO daily_study_plan_items (daily_plan_id, item_id) VALUES (?, ?)',
-              [dailyPlanId, itemId]
-          );
-      }
     }
   }
 }
