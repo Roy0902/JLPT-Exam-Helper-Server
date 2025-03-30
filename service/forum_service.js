@@ -108,13 +108,12 @@ class forum_service{
           await connection.beginTransaction();
 
           const result = await account.getAccountBySessionToken(session_token, connection)
-          console.log("Test")
+
           if(!result){
             await connection.rollback();
             return {statusCode: 403, message: '*Invalid User.', data: null};
           }
 
-          console.log("Test")
           await reply.insertReply(result, reply_text, question_id, connection);
 
           await connection.commit();

@@ -23,7 +23,6 @@ class forum_controller {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             const response = await forum_service.getQuestion(page, limit);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -37,7 +36,6 @@ class forum_controller {
         try {
             const {page, limit, question_id} = req.query;
             const response = await forum_service.getReply(page, limit, question_id);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;
@@ -51,7 +49,6 @@ class forum_controller {
         try {
             const {session_token ,reply_text, question_id} = req.body;
             const response = await forum_service.postReply(session_token ,reply_text, question_id);
-            console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;

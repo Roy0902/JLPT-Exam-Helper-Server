@@ -6,7 +6,7 @@ import study_plan from '../model/study_plan.js';
 import jlpt_exam_date from '../model/jlpt_exam_date.js'
 import item from '../model/item.js';
 import {spawn} from 'child_process';
-
+import account from '../model/account.js';
 
 async function runGA(args) {
   return new Promise((resolve, reject) => {
@@ -17,14 +17,11 @@ async function runGA(args) {
 
     pythonProcess.stdout.on('data', (data) => {
       output += data.toString();
-      console.log(data)
     });
 
     pythonProcess.stderr.on('data', (data) => {
       errorOutput += data.toString();
     });
-
-    console.log(output)
 
     pythonProcess.on('close', (code) => {
       if (code === 0) {
@@ -130,11 +127,11 @@ class study_plan_service{
   async generateStudy_Plan(current_level, target_level, daily_study_time, days_to_exam,
                            target_goal, session_token){
 
+      //Check Parameters
       if(!current_level || !target_level || !daily_study_time || !days_to_exam || !session_token || !target_goal){
           throw {statusCode: 400, message: '*Missing Parameters.', data: null};
       }
 
-    
       const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
       const email = decoded.email; 
 
@@ -142,6 +139,7 @@ class study_plan_service{
           throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
       }
 
+      //Fetch study materials from database
       let connection;
       try {
           connection = await pool.getConnection();
@@ -157,6 +155,7 @@ class study_plan_service{
           
           //GA Parameters
           const item_group_list = await item.getLearningItemBySubtopicID(subtopic_id_list, connection)
+
           //CBF Parameters
           const vocab_features_list = await item.getVocabularyFeatureBySubtopicID(subtopic_id_list, connection)
           const grammar_features_list = await item.getGrammarFeatureBySubtopicID(subtopic_id_list, connection)
@@ -179,14 +178,16 @@ class study_plan_service{
           const vocab_subtopic_id = [];
           const grammar_subtopic_id = [];
 
+          //Preprocess GA parameters
           let vocabGoal = 0;
           let grammarGoal = 0;
       
+          // Map GA group ID to subtopic_id
           item_group_list.forEach(row => {
             if (row.category_name === 'Vocabulary') {
               vocab_group_sizes.push(row.item_count);
               vocabGoal += row.item_count;
-              vocab_subtopic_id.push(row.subtopic_id); // Map GA group ID to subtopic_id
+              vocab_subtopic_id.push(row.subtopic_id); 
             }else if (row.category_name === 'Grammar') {
               grammar_group_sizes.push(row.item_count);
               grammarGoal += row.item_count;
@@ -213,6 +214,7 @@ class study_plan_service{
             level: current_level 
           };
 
+          //Call python script to run GA
           const args = [
             './ga.py',
             params.dailyStudyTime.toString(),
@@ -225,15 +227,16 @@ class study_plan_service{
             params.level.toString()
           ];
 
+
           const result = await runGA(args)
-          const {study_plan, score} = result;
+          const {study_plans, score} = result;           //Result of GA
 
-          console.log(result)
-
-          if(score <= 0){
-            return { statusCode: 500, message: ' The score of the solution is too low.', data: null}
-          }
-
+          //Bad study plan
+          /*if(score <= 0){
+            return {statusCode: 500, message: '*Bad Study Plan', data: null};
+          }*/
+          
+          //Preparation of CBF
           const JLPTLevel = {
             'N5': 5, 
             'N4': 4, 
@@ -248,13 +251,14 @@ class study_plan_service{
             subtopic_id_map[index + 1] = subtopic_id; 
           });
 
+          console.log("Vocab")
           grammar_subtopic_id.forEach((subtopic_id, index) => {
             subtopic_id_map[vocab_group_sizes.length + index + 1] = subtopic_id;
           });
 
           const daily_study_plans = [];
-          for (let i = 0; i < study_plan.length; i += daily_study_time) {
-            daily_study_plans.push(study_plan.slice(i, i + daily_study_time));
+          for (let i = 0; i < study_plans.length; i += daily_study_time) {
+            daily_study_plans.push(study_plans.slice(i, i + daily_study_time));
           }
 
           const vocab_item_features = vocab_features_list.map(item_feature => ({
@@ -286,7 +290,19 @@ class study_plan_service{
             groupMapping: subtopic_id_map
           };
       
+          //Call CBF Python Script
           const cbf_result = await runCBF(cbf_params);
+
+          //Insert result to the database
+          const acc = await account.getAccountByEmail(email, connection)
+
+          if(!acc){
+            return {statusCode: 400, message: 'Accoutn not found.', data: null};
+          }
+
+          study_plan.insertStudyPlan(acc.account_id, cbf_result, connection)
+
+          return {statusCode: 201, message: 'Study Plan generated.', data: null};
       } catch (error) {
           if (connection) {
             await connection.rollback();

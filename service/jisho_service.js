@@ -15,8 +15,7 @@ class jisho_service{
             const data = await response.json();
 
             if (data.data.length === 0) {
-                console.log(`No results found for "${keyword}"`);
-                return;
+                return {statusCode: 400, message: `No results found for "${keyword}`, data: results};
             }
 
             const results = data.data

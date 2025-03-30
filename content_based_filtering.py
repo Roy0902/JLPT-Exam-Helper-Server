@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam, 
                             vocab_group_sizes, grammar_group_sizes, item_features, group_mapping):
+    
     # Preprocess item features by subtopic_id
     cluster_data = {}
     all_items = []
@@ -16,8 +17,6 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
         cluster_data[subtopic_id].append(item)
         all_items.append((item["word"], subtopic_id, item.get("part_of_speech", "None"), 
                          item.get("is_common", 0), item["type"], item["item_id"]))
-
-    print(f"Available subtopics in item_features: {list(cluster_data.keys())}", file=sys.stderr)
 
     # Vectorize vocab features
     vocab_items = [item for item in item_features if item["type"] == "vocabulary"]
@@ -67,7 +66,6 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
             if subtopic_id == 0:  # Skip rest slots
                 continue
             if subtopic_id not in cluster_data:
-                print(f"Subtopic {subtopic_id} (GA group {ga_group_id}) not found in item_features", file=sys.stderr)
                 continue
 
             # Determine group size using original GA group ID (for validation, not size enforcement)
@@ -76,7 +74,6 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
                 size = (vocab_group_sizes[ga_group_id - 1] if is_vocab_cluster 
                         else grammar_group_sizes[ga_group_id - len(vocab_group_sizes) - 1])
             except IndexError:
-                print(f"Error: GA group ID {ga_group_id} exceeds group sizes (vocab: {len(vocab_group_sizes)}, grammar: {len(grammar_group_sizes)})", file=sys.stderr)
                 continue
 
             # Select available items

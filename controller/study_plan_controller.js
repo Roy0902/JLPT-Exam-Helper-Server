@@ -26,7 +26,7 @@ class study_plan_controller{
                 current_level, target_level, daily_study_time, days_to_exam,
                    target_goal, session_token
               );
-            console.log(response)
+              console.log(response)
             sendResponse(res, response.statusCode, response.message, response.data);
         }catch(error) {
             const statusCode = error.statusCode || 500;

@@ -193,7 +193,7 @@ if __name__ == "__main__":
     solution, solution_fitness, _ = ga_instance.best_solution()
     
     result = {
-        "study_plan": solution.tolist(),
+        "study_plans": solution.tolist(),
         "score": float(solution_fitness),
     }
     

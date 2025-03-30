@@ -23,8 +23,6 @@ class learning_item_service{
             throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
         }
 
-        console.log(email)
-
         let connection;
         try {
             connection = await pool.getConnection();
