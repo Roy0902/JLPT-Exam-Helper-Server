@@ -4,6 +4,8 @@ import jwt from'jsonwebtoken'
 import subtopic from '../model/subtopic.js';
 import study_plan from '../model/study_plan.js';
 import jlpt_exam_date from '../model/jlpt_exam_date.js'
+import grammar_item from '../model/grammar_item.js';
+import vocabulary_item from '../model/vocabulary_item.js';
 import item from '../model/item.js';
 import {spawn} from 'child_process';
 import account from '../model/account.js';
@@ -151,15 +153,89 @@ class study_plan_service{
         await connection.rollback();
       }
       return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
-  } finally {
-      if (connection) {
-        connection.release();
-      }
-  }
+    } finally {
+        if (connection) {
+          connection.release();
+        }
+    }
 
   }
+
+  async getStudyPlanItem(item_id_list){
+    if(!item_id_list){
+      throw {statusCode: 400, message: '*Item ID List is required.', data: null};
+   }
   
-  async generateStudy_Plan(current_level, target_level, daily_study_time, days_to_exam,
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        let grammarList = await grammar_item.getGrammarByItemIDList(item_id_list, connection)
+        let vocabularyList = await vocabulary_item.getVocabularyByItemIDList(item_id_list, connection)
+
+        if(!grammarList || grammarList.length === 0){
+          grammarList = null
+        }
+
+        if(!vocabularyList || vocabularyList.length === 0){
+          vocabularyList = null;
+        }
+
+        connection.commit()
+
+        return {statusCode: 201, 
+          message: 'Get study plan item succcessfully.', 
+          data:{'grammarList': grammarList, 'vocabularyList': vocabularyList}}
+    }catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+        if (connection) {
+          connection.release();
+        }
+    }
+  }
+
+  async updateStudyPlan(session_token, study_plan_item_id){
+    if(!session_token ||!study_plan_item_id){
+      throw {statusCode: 400, message: '*Session Token and study plan item id are required.', data: null};
+   }
+
+         
+   const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+   const email = decoded.email; 
+
+   if (!email) {
+       throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+   }
+  
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        await study_plan.updateStudyPlan(email, study_plan_item_id)
+        connection.commit()
+
+        return {statusCode: 201, 
+          message: 'Updated Study Plan Status.', 
+          data: null}
+    }catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+        if (connection) {
+          connection.release();
+        }
+    }
+  }
+
+  async generateStudyPlan(current_level, target_level, daily_study_time, days_to_exam,
                            target_goal, session_token){
 
       //Check Parameters
@@ -308,11 +384,10 @@ class study_plan_service{
                 
           const grammar_item_features = grammar_features_list.map(item_feature => ({
             item_id: item_feature.item_id,
+            subtopic_id: item_feature.subtopic_id,
             level: JLPTLevel[item_feature.level_name] || -1,
             type: "grammar"
           }));
-
-          const all_item_features = [...vocab_item_features, ...grammar_item_features];
 
           const cbf_params = {
             dailyStudyPlan: daily_study_plans,
@@ -320,7 +395,8 @@ class study_plan_service{
             daysToExam: days_to_exam,
             vocabGroupSizes: vocab_group_sizes,
             grammarGroupSizes: grammar_group_sizes,
-            itemFeatures: all_item_features,
+            vocabItemFeatures: vocab_features_list,
+            grammarItemFeatures: grammar_features_list,
             groupMapping: subtopic_id_map
           };
       
@@ -341,6 +417,7 @@ class study_plan_service{
 
           await connection.commit()
 
+          console.log("SCORE: " , score)
           return {statusCode: 201, message: 'Study Plan generated.', data: null};
       } catch (error) {
           if (connection) {
@@ -352,10 +429,8 @@ class study_plan_service{
             connection.release();
           }
       }
-
-  };
-
-
-}
+    }
+  
+};
 
 export default new study_plan_service();

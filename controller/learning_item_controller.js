@@ -52,6 +52,7 @@ class learning_item_controller {
         }catch(error) {
             const statusCode = error.statusCode || 500;
             const message = error.message || 'Internal server error';
+            console.log(message)
             return sendResponse(res, statusCode, message, null);   
         }
     };

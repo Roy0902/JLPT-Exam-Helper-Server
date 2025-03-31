@@ -28,6 +28,18 @@ class vocabulary_item{
     return rows;
   }
 
+  async getVocabularyByItemIDList(item_id_list, connection = pool) {
+    if (!item_id_list || item_id_list.length === 0) {
+      return [];
+    }
+
+    const conditions = item_id_list.map(() => 'item_id = ?').join(' OR ');
+    const query = `SELECT * FROM vocabulary_items WHERE ${conditions}`;
+
+    const [rows] = await connection.execute(query, item_id_list);
+    return rows;
+  }
+
 }
 
 export default new vocabulary_item();

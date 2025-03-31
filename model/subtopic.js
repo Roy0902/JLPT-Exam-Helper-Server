@@ -38,7 +38,7 @@ class subtopic {
           FROM user_progress up 
           JOIN accounts a ON up.account_id = a.account_id 
           WHERE a.email = ? )
-        ORDER_BY l.level_id ASC`,      
+        ORDER BY l.level_id ASC`,      
       [current_level_name, target_level_name, email]);
 
     return rows;

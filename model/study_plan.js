@@ -59,6 +59,19 @@ class study_plan {
       );
     }
   }
+
+  async updateStudyPlan(email, study_plan_item_id, connection = pool) {
+    await connection.execute(
+      `UPDATE study_plan_items spi
+       JOIN study_plan sp ON spi.study_plan_id = sp.study_plan_id
+       JOIN accounts a ON sp.account_id = a.account_id
+       SET spi.is_completed = TRUE
+       WHERE a.email = ? 
+       AND spi.study_plan_item_id = ? `, 
+      [email, study_plan_item_id]
+    );
+
+  }
 }
 
 export default new study_plan();
