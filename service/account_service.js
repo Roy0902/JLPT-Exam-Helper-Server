@@ -82,29 +82,43 @@ class account_service{
         }
     };
 
-    async changePassword(email, password){
+    async changePassword(session_token, old_password, new_password){
       // Validate inputs
-      if (!email || !password) {
-        throw {statusCode: 400, message: '*Email and new password are required.'};
-      }
-
-      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-        throw {statusCode: 400, message: '*Invalid email format.', data: null};
+      if (!session_token) {
+        throw {statusCode: 400, message: '*Session Token is required.',data: null}
       }
   
+      if(!old_password || !new_password){
+        throw {statusCode: 400, message: '*Old Password and New Password are required.',data: null}
+      }
+
+      const decoded = jwt.verify(session_token, process.env.JWT_SECRET); 
+      const email = decoded.email; 
+  
+      if (!email) {
+          throw {statusCode: 400, message: '*Invalid Session Token.', data: null};
+      }
+
       let connection;
       try {
           connection = await pool.getConnection();
           await connection.beginTransaction();
 
-          const result = await account.getAccountByEmail(email, connection);
-          if (!result) {
+          const row = await account.getAccountByEmail(email, connection);
+
+          if (!row) {
           await connection.rollback();
             return {statusCode: 403, message: '*Account not found.', data: null};
           }
 
+          const isMatch = await bcrypt.compare(old_password, row.password_hash);
+          if(!isMatch){
+            return {statusCode: 403, message: '*Old password does not match.', data: null};
+          }
+
+
           // Hash new password
-          const password_hash = await bcrypt.hash(password, 10);
+          const password_hash = await bcrypt.hash(new_password, 10);
           account.updatePasswordByEmail(email, password_hash)
           await connection.commit();
 

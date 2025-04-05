@@ -30,6 +30,18 @@ class account_controller {
         }
     };
 
+    changePassword = async (req, res) => {
+        try {
+            const {session_token, old_password, new_password} = req.body;
+            const response = await account_service.changePassword(session_token, old_password, new_password);
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
     signIn = async (req, res) => {
         try {
             const {email, password} = req.body;
