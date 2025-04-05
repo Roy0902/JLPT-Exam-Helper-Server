@@ -16,6 +16,13 @@ class session_token {
 
     return rows[0];
   }
+
+  async deactivateSessionToken(session_token, connection = pool) {
+    await connection.execute(
+      'UPDATE session_tokens set is_revoked = 1 where token = ? ',
+      [session_token]
+    );
+  }
 }
 
 export default new session_token();

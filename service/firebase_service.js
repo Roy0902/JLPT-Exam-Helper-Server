@@ -7,7 +7,7 @@ import serviceAccount from '../serviceAccountKey.json' with { type: 'json' };
 
 let firebaseApp;
 try {
-    firebaseApp = initializeApp({
+    firebaseApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     })
 }catch (error){
@@ -28,11 +28,10 @@ class firebase_service {
 
             
         try{
-            const response = await getMessaging().send(message);
+            const response = await getMessaging(firebaseApp).send(message);
             console.log('Notification sent:', response);
         } catch (error) {
             console.log(error)
-            process.exit(1); 
         }
     }
 }

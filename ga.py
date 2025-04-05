@@ -4,7 +4,6 @@ import json
 import sys
 import numpy as np
 
-#Parameters from the server
 def parse_args(args):
     return {
         "daily_study_time": int(args[1]),
@@ -35,7 +34,6 @@ def on_start(ga_instance):
     vocab_time_cost = 1.25
     grammar_time_cost = 2
     
-    # Calculate solution size and total group sizes
     solution_size = PARAMS["days_to_exam"] * PARAMS["daily_study_time"]
     total_vocab_size = sum(PARAMS["vocab_group_sizes"])
     total_grammar_size = sum(PARAMS["grammar_group_sizes"])
@@ -83,7 +81,7 @@ def fitness_function(ga_instance, solution, solution_idx):
     grammar_groups = len(PARAMS["grammar_group_sizes"])
     total_activities = vocab_groups + grammar_groups + 1
     
-    vocab_group_counts = {i + 1: 0 for i in range(vocab_groups)}  # e.g., {1: 0, 2: 0, 3: 0}
+    vocab_group_counts = {i + 1: 0 for i in range(vocab_groups)} 
     grammar_group_counts = {i + 1: 0 for i in range(grammar_groups)}
 
     overassignment_penalty = 0 
@@ -93,12 +91,10 @@ def fitness_function(ga_instance, solution, solution_idx):
 
     clustering_bonus = 0
 
-    # Process each day and update counts
     for day in range(PARAMS["days_to_exam"]):
         day_start = day * PARAMS["daily_study_time"]
         slots = solution[day_start:day_start + PARAMS["daily_study_time"]]
         
-        # Calculate time used based on gene_space indices, not vocab_threshold
         time_used = sum(1.25 if 1 <= s <= vocab_groups else 
                         2 if vocab_groups < s < total_activities else 
                         0 for s in slots)
@@ -109,17 +105,16 @@ def fitness_function(ga_instance, solution, solution_idx):
         time_usage = time_used / PARAMS['daily_study_time']
         target_min = 0.5
         if time_usage > 0.1 and time_usage < target_min:
-            vocab_balance_penalty -= 4
+            time_penalty -= 4
 
-        # Update subgroup counts
-        day_vocab_counts = {i + 1: 0 for i in range(vocab_groups)}  # Reset per day
+        day_vocab_counts = {i + 1: 0 for i in range(vocab_groups)}  
         day_grammar_counts = {i + 1: 0 for i in range(grammar_groups)}
         
         for s in slots:
             s = int(s)
             if 1 <= s <= vocab_groups:
                 day_vocab_counts[s] += 1
-                vocab_group_counts[s] += 1  # For overall progress
+                vocab_group_counts[s] += 1  
             elif vocab_groups < s < total_activities:
                 day_grammar_counts[s - vocab_groups] += 1
                 grammar_group_counts[s - vocab_groups] += 1
@@ -133,7 +128,6 @@ def fitness_function(ga_instance, solution, solution_idx):
             if count > 1:
                 clustering_bonus += count * 2
 
-    # Calculate progress with size caps and overassignment penalty
     vocab_progress = 0
     for group, count in vocab_group_counts.items():
         group_size = PARAMS["vocab_group_sizes"][group - 1] 

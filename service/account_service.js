@@ -167,6 +167,31 @@ class account_service{
       }
   };
 
+  async signOut(token){
+    // Validate inputs
+    if (!token) {
+      throw {statusCode: 400, message: 'Session Token is required.'};
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        await session_token.deactivateSessionToken(token, connection);
+        await connection.commit();
+
+        return {statusCode: 200, message: 'Sign Out Successfully.', data: null};
+    } catch (error) {
+        if (connection) 
+          await connection.rollback();
+        return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+    } finally {
+        if (connection) 
+          connection.release();
+    }
+};
+
   async verifySessionToken(token){
     // Validate inputs
     if (!token) {
@@ -178,6 +203,7 @@ class account_service{
         connection = await pool.getConnection();
         await connection.beginTransaction();
         const sessionToken = await session_token.getEmailByToken(token, connection);
+
         if(!sessionToken){
           await connection.rollback();
           return {statusCode: 403, message: 'The session token was expired.', data: null};

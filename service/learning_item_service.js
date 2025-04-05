@@ -196,10 +196,21 @@ class learning_item_service{
         if(!grammarList){
           grammarList = null;
         }
+
+        let vocabularyList = await vocabulary_item.getVocabularyByLevelName(level_name, connection)
+
+        if(!vocabularyList){
+          vocabularyList = null;
+        }
+
+        console.log(vocabularyList)
+
         await connection.commit();
         return {statusCode: 201, 
                 message: 'Get learning item succcessfully.', 
-                data:{'characterList': characterList, 'grammarList': grammarList}}
+                data:{'characterList': characterList, 
+                  'grammarList': grammarList, 
+                  'vocabularyList': vocabularyList}}
     } catch (error) {
       if (connection) 
         await connection.rollback();

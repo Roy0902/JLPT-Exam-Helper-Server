@@ -42,6 +42,20 @@ class account_controller {
         }
     };
 
+    signOut = async (req, res) => {
+        try {
+            const {token} = req.body;
+            const response = await account_service.signOut(token);
+            console.log(response)
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            console.log(message)
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
     verifySessionToken = async (req, res) => {
         try {
             const {token} = req.body;
