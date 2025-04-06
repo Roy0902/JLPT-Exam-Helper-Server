@@ -23,7 +23,7 @@ class otp_service{
 
             // 6-digit OTP
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); 
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+            const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000 + 10 * 60 * 1000); 
 
             await otp.createOtp(email, otpCode, expiresAt, connection);
 
@@ -52,7 +52,7 @@ class otp_service{
             await connection.beginTransaction();
     
             const otp_code = Math.floor(100000 + Math.random() * 900000).toString(); 
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+            const expiresAt = new Date(Date.now() +8 * 60 * 60 * 1000 + 10 * 60 * 1000); 
     
             await otp.createOtp(email, otp_code, expiresAt, connection);
             await email_service.sendOtpEmail(email, otp_code);
@@ -89,7 +89,7 @@ class otp_service{
     
             // 6-digit OTP
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); 
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+            const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000 + 10 * 60 * 1000); 
     
             await otp.createOtp(email, otpCode, expiresAt, connection);
             await email_service.sendOtpEmail(email, otpCode);
