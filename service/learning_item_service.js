@@ -203,8 +203,6 @@ class learning_item_service{
           vocabularyList = null;
         }
 
-        console.log(vocabularyList)
-
         await connection.commit();
         return {statusCode: 201, 
                 message: 'Get learning item succcessfully.', 

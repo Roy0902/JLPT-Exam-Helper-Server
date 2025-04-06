@@ -12,7 +12,7 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
     print("Vocab item features sample:", json.dumps(vocab_item_features[:5], indent=2), file=sys.stderr)
     
     try:
-        # Preprocess vocab features by subtopic_id
+        # Preprocess vocabulary features by subtopic_id
         vocab_cluster_data = {}
         all_vocab_items = []
         for item in vocab_item_features:
@@ -25,7 +25,7 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
                                    item.get("is_common", 0),
                                    "vocabulary", item["item_id"]))
 
-        # Preprocess grammar features by subtopic_id
+        # Preprocess grammar items by subtopic_id
         grammar_cluster_data = {}
         all_grammar_items = []
         for item in grammar_item_features:
@@ -35,7 +35,7 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
             grammar_cluster_data[subtopic_id].append(item)
             all_grammar_items.append((subtopic_id, item["item_id"]))
 
-        # Vectorize vocab features
+        # Vectorize vocabulary features
         if vocab_item_features:
             pos_texts = [item.get("part_of_speech", "Unknown") for item in vocab_item_features]
             vectorizer = TfidfVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b")
@@ -114,11 +114,9 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
                     used_item_ids.add(item_id)
                     day_items_assigned.append(item_id)
 
-            # Only append non-empty day_items_assigned
-            if day_items_assigned:  # Check if the list has any item_ids
+            if day_items_assigned:  
                 daily_materials.append(day_items_assigned)
 
-        print("Generated daily_materials sample:", json.dumps(daily_materials[:2], indent=2), file=sys.stderr)
         return daily_materials
     
     except Exception as e:
@@ -128,7 +126,6 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
 if __name__ == "__main__":
     try:
         input_data = json.loads(sys.stdin.read())
-        print("Input received, keys:", json.dumps(list(input_data.keys()), indent=2), file=sys.stderr)
         materials = content_based_filtering(input_data["dailyStudyPlan"], input_data["dailyStudyTime"], 
                                           input_data["daysToExam"], input_data["vocabGroupSizes"], 
                                           input_data["grammarGroupSizes"], input_data["vocabItemFeatures"], 
@@ -136,4 +133,3 @@ if __name__ == "__main__":
         print(json.dumps(materials))
     except Exception as e:
         print(f"Main error: {str(e)}", file=sys.stderr)
-        sys.exit(1)

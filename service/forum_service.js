@@ -63,9 +63,33 @@ class forum_service{
             if (connection) 
               connection.release();
         }
-
-        
+  
     };
+
+    async searchQuestion(keyword){
+      if(!keyword){
+        throw {statusCode: 400, message: '*Keyword is required.', data: null};
+      }
+
+      let connection;
+      try {
+          connection = await pool.getConnection();
+          await connection.beginTransaction();
+
+          const rows = await question.searchQuestion(keyword, connection)
+
+          await connection.commit();
+          return {statusCode: 201, message: 'Get Question.', data: rows};
+      }catch (error) {
+          if (connection) 
+            await connection.rollback();
+          return { statusCode: error.statusCode || 500, message: error.message || 'Internal server error', data: null };
+      } finally {
+          if (connection) 
+            connection.release();
+      }
+
+  };
 
     async getReply(page, limit, question_id){
       const offset = (page - 1) * limit;

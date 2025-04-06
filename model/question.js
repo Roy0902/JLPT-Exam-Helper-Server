@@ -19,6 +19,19 @@ class question {
     );
     return rows
   }
+
+  async searchQuestion(keyword, connection = pool) {
+    const [rows] = await connection.execute(
+        'SELECT q.* , count(r.reply_id) as reply_number, acc.user_name FROM questions q ' + 
+        'LEFT JOIN replies r on r.question_id = q.question_id '+ 
+        'LEFT JOIN accounts acc on q.account_id = acc.account_id ' +
+        'WHERE q.question_title LIKE ? ' +
+        'OR q.question_description LIKE ? ' + 
+        'GROUP BY q.question_id, acc.user_name ',
+        [keyword, keyword]
+    );
+    return rows
+  }
 }
 
 export default new question();

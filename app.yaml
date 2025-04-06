@@ -1,5 +1,6 @@
-runtime: nodejs
+runtime: custom
 env: flex
+entrypoint: node server.js
 manual_scaling:
   instances: 1
 resources:

@@ -13,7 +13,7 @@ import firebase_service from './firebase_service.js';
 
 async function runGA(args) {
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python', args);
+    const pythonProcess = spawn('/app/venv/bin/python3', args);
 
     let output = '';
     let errorOutput = '';
@@ -39,7 +39,7 @@ async function runGA(args) {
 
 async function runCBF(params, scriptPath = './content_based_filtering.py') {
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python', [scriptPath]);
+    const pythonProcess = spawn('/app/venv/bin/python3', [scriptPath]);
 
     let output = '';
     let errorOutput = '';

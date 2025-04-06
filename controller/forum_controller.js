@@ -58,6 +58,20 @@ class forum_controller {
         }
     };
 
+    searchQuestion = async (req, res) => {
+        try {
+            const {keyword} = req.query;
+            const response = await forum_service.searchQuestion(keyword);
+            console.log(response)
+            sendResponse(res, response.statusCode, response.message, response.data);
+        }catch(error) {
+            const statusCode = error.statusCode || 500;
+            const message = error.message || 'Internal server error';
+            console.log(message)
+            return sendResponse(res, statusCode, message, null);   
+        }
+    };
+
 
 }
 
