@@ -7,8 +7,10 @@ class user_progress {
               FROM subtopics s
               INNER JOIN categories c ON s.category_id = c.category_id
               INNER JOIN levels l ON s.level_id = l.level_id
-              LEFT JOIN user_progress up ON up.subtopic_id = s.subtopic_id
-              LEFT JOIN accounts a ON up.account_id = a.account_id AND a.email = ?
+              LEFT JOIN (
+                  user_progress up
+                  INNER JOIN accounts a ON up.account_id = a.account_id AND a.email = ?
+              ) ON up.subtopic_id = s.subtopic_id
               WHERE l.level_name = ?
               GROUP BY c.category_name;`,
               [email, level_name]);

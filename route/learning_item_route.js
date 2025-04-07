@@ -12,6 +12,5 @@ router.get('/get-grammar-item-list', learning_item_controller.getGrammarBySubtop
 router.get('/get-vocabulary-item-list', learning_item_controller.getVocabularyBySubtopicName);
 router.get('/get-learning-item-by-level', learning_item_controller.getLearningItemByLevelName);
 router.get('/get-learning-item-by-subtopic-name', learning_item_controller.getLearningItemBySubtopicName);
-router.get('/get-user-progress', learning_item_controller.getUserProgress);
 
 export default router;

@@ -8,9 +8,6 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
                           vocab_group_sizes, grammar_group_sizes, vocab_item_features, 
                           grammar_item_features, group_mapping):
     
-    print("Starting content_based_filtering", file=sys.stderr)
-    print("Vocab item features sample:", json.dumps(vocab_item_features[:5], indent=2), file=sys.stderr)
-    
     try:
         # Preprocess vocabulary features by subtopic_id
         vocab_cluster_data = {}
@@ -88,7 +85,7 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
                     size = (vocab_group_sizes[ga_group_id - 1] if is_vocab_cluster 
                             else grammar_group_sizes[ga_group_id - len(vocab_group_sizes) - 1])
                 except IndexError:
-                    print(f"IndexError: ga_group_id {ga_group_id} out of range for {'vocab' if is_vocab_cluster else 'grammar'} group sizes", file=sys.stderr)
+                    print(f"Main error: {str(e)}", file=sys.stderr)
                     continue
 
                 if is_vocab_cluster:
@@ -120,7 +117,7 @@ def content_based_filtering(daily_study_plan, daily_study_time, days_to_exam,
         return daily_materials
     
     except Exception as e:
-        print(f"Error in content_based_filtering: {str(e)}", file=sys.stderr)
+        print(f"Main error: {str(e)}", file=sys.stderr)
         raise
 
 if __name__ == "__main__":

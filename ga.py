@@ -39,7 +39,7 @@ def on_start(ga_instance):
     total_grammar_size = sum(PARAMS["grammar_group_sizes"])
     total_material_size = total_vocab_size + total_grammar_size
     
-    idle_weight = max(1, solution_size / (total_material_size + 1)) * 0.05
+    idle_weight = max(1, solution_size / (total_material_size + 1))
     vocab_weights = PARAMS["vocab_group_sizes"]  
     grammar_weights = PARAMS["grammar_group_sizes"]  
     weights = [idle_weight] + vocab_weights + grammar_weights
@@ -105,7 +105,7 @@ def fitness_function(ga_instance, solution, solution_idx):
         time_usage = time_used / PARAMS['daily_study_time']
         target_min = 0.5
         if time_usage > 0.1 and time_usage < target_min:
-            time_penalty -= 4
+            time_penalty -= 1000
 
         day_vocab_counts = {i + 1: 0 for i in range(vocab_groups)}  
         day_grammar_counts = {i + 1: 0 for i in range(grammar_groups)}
@@ -133,7 +133,7 @@ def fitness_function(ga_instance, solution, solution_idx):
         group_size = PARAMS["vocab_group_sizes"][group - 1] 
         vocab_progress += min(count, group_size)  
         if count > group_size: 
-            overassignment_penalty -= 2 * (count - group_size)  
+            overassignment_penalty -= 25 * (count - group_size)  
 
     vocab_progress = min(vocab_progress, PARAMS["vocab_goal"])
 
@@ -150,7 +150,7 @@ def fitness_function(ga_instance, solution, solution_idx):
 
     total_goal = PARAMS["vocab_goal"] + PARAMS["grammar_goal"]
     if progress < total_goal:
-        underachievement_penalty = -2 * (total_goal - progress)
+        underachievement_penalty = -5 * (total_goal - progress)
     
     fitness = progress + time_penalty + overassignment_penalty + underachievement_penalty + clustering_bonus + vocab_balance_penalty
     return fitness

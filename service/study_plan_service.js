@@ -13,7 +13,7 @@ import firebase_service from './firebase_service.js';
 
 async function runGA(args) {
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('/app/venv/bin/python3', args);
+    const pythonProcess = spawn('/app/venv/bin/python3', args); ///app/venv/bin/
 
     let output = '';
     let errorOutput = '';
@@ -111,6 +111,9 @@ class study_plan_service{
           await connection.beginTransaction();
 
           const row = await study_plan.getStudyPlanSummary(email, connection)
+          if(!row){ 
+            return {statusCode: 400, message: 'Study plan not available.', data: null};
+          }
 
           connection.commit()
 
