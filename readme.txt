@@ -5,7 +5,7 @@ Author: Wan Chun Man (56231780)
 Language: JavaScript, Python
 IDR Environment: VS Code
 Version: Node.js 22, Python 3.10
-Runtime Environment: Google App Engine VM
+Deployment Environment: Google App Engine VM
 ======================================================================================================================
 Installation
 1. Install Node.js and Python
