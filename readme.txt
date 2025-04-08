@@ -28,3 +28,6 @@ The txt file 'mysql_create_table_records' have the records of the CREATE stateme
 Python file
 The two python files in the folder are used to implement GA and CBF respectively.
 =======================================================================================================================
+Google Service Account Key
+Because the key is revoked if it is published in the public repository, the keys in this repository are revoked and the services are not available if you deploy the server. If you want to get the keys, please contact me via chunmwan4-c@my.cityu.edu.hk.
+=======================================================================================================================
