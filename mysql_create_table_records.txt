@@ -1,7 +1,3 @@
-CREATE DATABASE cs4514_jlpt_exam_helper_database;
-
-use cs4514_jlpt_exam_helper_database;
-
 CREATE TABLE otps (
     otp_id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL,             
